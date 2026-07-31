@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Real configuration, Phase 6 (Cross-Cutting Infrastructure) — supersedes the
+     Phase 1 placeholder. "log.level" and "logging.directory" are JVM system
+     properties bridged from the Configuration Layer by LogManager before any
+     logger is first obtained — see docs/framework/CROSS_CUTTING_INFRASTRUCTURE.md.
+     Defaults (INFO / logs) apply only if LogManager was never invoked. -->
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+        <RollingFile name="RollingFile"
+                     fileName="${sys:logging.directory:-logs}/automation.log"
+                     filePattern="${sys:logging.directory:-logs}/automation-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="${sys:log.level:-INFO}">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

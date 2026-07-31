@@ -1,0 +1,93 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.mobileautomation.framework'
+version = '0.1.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// UTF-8 everywhere: source encoding, compiled bytecode resource reading, and test execution.
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+}
+tasks.withType(Test).configureEach {
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+dependencies {
+    // Automation Engine / Driver support (MA-PV-001 §16; MA-FA-001 §9 Driver Management)
+    // NOTE: "Appium Java Client 3.x" as originally specified does not correspond to a current
+    // artifact version (the 3.x client line predates the W3C protocol and is incompatible with
+    // Appium 2.x/3.x servers). 9.x is the current client line compatible with Appium 3.x + UiAutomator2.
+    implementation 'io.appium:java-client:9.4.0'
+    implementation 'org.seleniumhq.selenium:selenium-java:4.25.0'
+
+    // Logging Layer (MA-FA-001 §16, tool choice recorded in MA-FA-001 v1.1)
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+    implementation 'org.apache.logging.log4j:log4j-core:2.24.1'
+    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.24.1'
+
+    // Reporting Layer (MA-FA-001 §15, tool choice recorded in MA-FA-001 v1.1)
+    implementation 'com.aventstack:extentreports:5.1.1'
+
+    // Test Data Layer serialization (MA-FA-001 §11, tool choice recorded in MA-FA-001 v1.1)
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.0'
+    // YAML/Properties test-data formats (Phase 8) — pinned to the exact jackson-databind version
+    // above to avoid classpath binding mismatches (same rationale as log4j-core/log4j-slf4j2-impl).
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.0'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-properties:2.18.0'
+
+    // Synthetic test-data generation (Phase 8). "net.datafaker" is the actively maintained
+    // successor to the now-dormant "com.github.javafaker" (last released 2020, carries an
+    // outdated/vulnerable transitive SnakeYAML) — selected instead per MA-DEP-001's
+    // no-unmaintained-dependency principle.
+    implementation 'net.datafaker:datafaker:2.4.3'
+
+    // Boilerplate reduction (docs/architecture/DEPENDENCY_VERSION_FREEZE.md) — used for POJOs/models
+    // and, later, Page Object field boilerplate. compileOnly + annotationProcessor on both source
+    // sets since Lombok is a compile-time-only annotation processor, never a runtime dependency.
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    testCompileOnly 'org.projectlombok:lombok:1.18.34'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    // General-purpose utilities (docs/architecture/DEPENDENCY_VERSION_FREEZE.md)
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
+
+    // Test Framework (MA-PV-001 §16). Deliberately "implementation", not
+    // "testImplementation": the frozen `listeners` package lives under
+    // src/main/java (Project Bootstrap) and hosts TestNG-coupled
+    // infrastructure (RetryAnalyzer, Suite/Test/Method listeners) added in
+    // Phase 6 — those classes cannot compile against a test-scoped-only
+    // dependency. This is also the architecturally correct scope for a test
+    // *automation framework* project (as opposed to a typical application):
+    // any consumer of this framework needs TestNG on their classpath
+    // regardless. See docs/framework/CROSS_CUTTING_INFRASTRUCTURE.md.
+    implementation 'org.testng:testng:7.10.2'
+}
+
+test {
+    useTestNG()
+    // Pilot-First Enterprise Development Strategy (governance rule, Phases 4-8): no Test Class
+    // exists yet by design — src/test/java currently holds only reusable infrastructure
+    // (assertions.CommonAssertions), zero @Test methods. Gradle 9's default
+    // failOnNoDiscoveredTests=true treats that as a build failure rather than a no-op, which
+    // breaks the documented `gradlew clean build` command (see MA-EFR-001 §28,
+    // docs/framework/FOUNDATION_READINESS_RESOLUTION.md). This does not weaken validation of
+    // any actual test: once Phase 9 adds a real Test Class, the `test` task will discover and
+    // run it exactly as before; this only prevents "zero tests" itself from being an error
+    // during the foundation-only phases.
+    failOnNoDiscoveredTests = false
+}
