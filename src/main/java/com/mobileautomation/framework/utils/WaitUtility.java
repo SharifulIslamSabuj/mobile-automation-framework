@@ -128,6 +128,27 @@ public final class WaitUtility {
         return wait(timeout).until(ExpectedConditions.presenceOfAllElementsLocatedBy(locator));
     }
 
+    // ---- Presence, scoped to an already-resolved parent element ----
+
+    /**
+     * Waits for an element matching {@code relativeLocator} within
+     * {@code parent}'s subtree — the scoped counterpart to
+     * {@link #waitForPresence(By)}. Added Phase 9.5B: needed wherever a
+     * target must be resolved relative to an already-verified element (e.g.
+     * a RecyclerView card's image, resolved relative to that same card's
+     * already-matched name element) rather than as an independent,
+     * driver-level list correlated by index or geometry — Phase 9.5.1
+     * confirmed independent {@code findAll} lists for different locators can
+     * resolve to different lengths, making index correlation unsound.
+     */
+    public static WebElement waitForPresence(WebElement parent, By relativeLocator) {
+        return waitForPresence(parent, relativeLocator, defaultTimeout());
+    }
+
+    public static WebElement waitForPresence(WebElement parent, By relativeLocator, Duration timeout) {
+        return wait(timeout).until(ExpectedConditions.presenceOfNestedElementLocatedBy(parent, relativeLocator));
+    }
+
     // ---- Custom wait support (the escape hatch every other method is built on) ----
 
     public static <T> T waitUntil(Function<WebDriver, T> condition) {

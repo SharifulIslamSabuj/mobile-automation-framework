@@ -1,18 +1,18 @@
 ---
 document_id: MA-RS-001
 title: Requirements Specification
-version: v1.0
+version: v1.8
 status: Draft
 author: Project Owner / Repository Maintainer
 created_date: 2026-07-29
-last_updated: 2026-07-29
+last_updated: 2026-08-04
 reviewed_by: Pending
 approved_by: Pending
 project: Mobile Automation Framework
 project_code: MA
 aut_name: Sauce Labs Android Demo App
 aut_version: 2.2.0
-related_documents: [MA-PV-001, MA-AA-001]
+related_documents: [MA-PV-001, MA-AA-001, MA-LOC-001]
 classification: Internal
 ---
 
@@ -24,7 +24,7 @@ classification: Internal
 |---|---|
 | Document ID | MA-RS-001 |
 | Document Name | Requirements Specification |
-| Version | v1.0 |
+| Version | v1.8 |
 | Status | Draft |
 | Project | Mobile Automation Framework |
 | Project Code | MA |
@@ -41,6 +41,14 @@ classification: Internal
 |---|---|---|---|
 | v0.1 | 2026-07-29 | Project Owner | Initial draft derived from MA-PV-001 and MA-AA-001 |
 | v1.0 | 2026-07-29 | Project Owner | First baseline version submitted for approval |
+| v1.1 | 2026-08-01 | Project Owner | TC-012 Isolated Resolution: FR-012's Acceptance Criteria resolved from "Out of Current Observation" using Task #16 reconciliation evidence (this session) and MA-LOC-001 §6 — Add to Cart does not navigate away from Product Details; the cart badge appearing is the verifiable state change. No other requirement modified. |
+| v1.2 | 2026-08-02 | Project Owner | Phase 10.1A (Authentication Module Documentation Reconciliation): FR-004's Acceptance Criteria resolved from "Out of Current Observation" using Phase 9.5G runtime evidence (this session, Enterprise Framework v1.0.0) — post-login destination is the Product Catalog screen, corroborated by the Navigation Drawer's authenticated-state marker. Scoped to the standalone login path only. Requirement Traceability Summary (§12) Authentication row updated accordingly. No other requirement modified. |
+| v1.3 | 2026-08-02 | Project Owner | Phase 10.4A (Product Details Module Documentation Reconciliation): FR-011's Acceptance Criteria partially resolved from "Out of Current Observation" using Phase 10.3 runtime evidence (this session, real-device execution, Enterprise Framework v1.0.0, unchanged) — Increase/Decrease each change quantity by exactly 1, and reducing to 0 disables Add to Cart. Scoped precisely: the selector's maximum bound and the Decrease control's own state at the zero floor were not exercised and remain Out of Current Observation — not inferred. Requirement Traceability Summary (§12) Product Details row updated accordingly. No other requirement modified. |
+| v1.4 | 2026-08-04 | Project Owner | Phase 11.9A (Cart Module — TC-018 Documentation Reconciliation): FR-018's Acceptance Criteria fully resolved from "Out of Current Observation" using Phase 11.7 real-device evidence (this session) — Proceed to Checkout's destination is conditional on authentication state (Login, with auto-resume to Shipping Address after successful login, if anonymous; Shipping Address directly if already authenticated), with Cart contents preserved throughout. Requirement Traceability Summary (§12) Cart row updated from Partial to Yes accordingly. No other requirement modified. |
+| v1.5 | 2026-08-04 | Project Owner | Phase 12.7A (Payment Module Documentation Reconciliation): FR-023's Acceptance Criteria fully resolved from "Out of Current Observation" using Phase 12.3/12.5 real-device evidence (this session) — the Payment Method screen's card entry fields are exactly four (Cardholder Name, Card Number, Expiration Date, Security Code); Card Number and Expiration Date auto-format entered input (space-grouped digits, slash-inserted date respectively); the Billing-Same-As-Shipping checkbox is checked by default. FR-022 reviewed against the same evidence and found to require no wording change. Requirement Traceability Summary (§12) Checkout — Payment row updated from Partial to Yes accordingly. No other requirement modified. |
+| v1.6 | 2026-08-04 | Project Owner | Phase 13.3A (TC-026 Documentation Reconciliation): FR-026's Acceptance Criteria fully resolved from "Out of Current Observation" using Phase 13.2 real-device automated-execution evidence and Phase 13.3 Enterprise Acceptance Review (this session) — the Place Order action is hosted on the Review Order screen (the "Place Order" button, confirmed via `paymentBtn`'s fourth reuse, accessibility id "Completes the process of checkout"); tapping it navigates to the Checkout Complete screen. Requirement Traceability Summary (§12) Order Placement row updated from Partial to Yes accordingly. No other requirement modified. |
+| v1.7 | 2026-08-04 | Project Owner | Phase 14.2A (Product Sort — TC-006 Documentation Reconciliation): FR-006's Acceptance Criteria fully resolved from "Out of Current Observation" using Phase 14.1 real-device automated-execution evidence and Phase 14.2 Enterprise Acceptance Review (this session) — the Sort control's four options each re-order the Product Catalog correctly (Name Ascending/Descending alphabetically, Price Ascending/Descending numerically, in the named direction); Name Ascending is the Product Catalog's default sort state. Requirement Traceability Summary (§12) Product Browsing row updated from Partial to Yes accordingly. No other requirement modified. |
+| v1.8 | 2026-08-05 | Project Owner | Phase 15.2A (Navigation — TC-028 Documentation Reconciliation): FR-028's Acceptance Criteria fully resolved from "Out of Current Observation" using Phase 15.1 real-device automated-execution evidence and Phase 15.2 Enterprise Acceptance Review (this session) — all seven navigable drawer destinations (WebView, QR Code Scanner, Geo Location, Drawing, About, FingerPrint, Virtual USB) confirmed to navigate to their own screen; Reset App State confirmed to open a dismissible confirmation dialog, not a navigation. Crash App (Debug) remains permanently excluded from automation (not a gap — an explicit, evidence-independent scope boundary). Requirement Traceability Summary (§12) Navigation row updated from Partial to Yes accordingly. This is the final remaining item from the original "elevated-risk items" list (MA-TS-001 §8) — no unresolved items remain. No other requirement modified. |
 
 ---
 
@@ -124,7 +132,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support verifying the result of a Login submission. |
 | Priority | Should |
 | Source | MA-AA-001 §6 |
-| Acceptance Criteria | Post-login destination screen is capturable; exact destination is Out of Current Observation. |
+| Acceptance Criteria | Post-login destination screen is capturable and verifiable. Resolved via Phase 9.5G runtime evidence (real-device execution, this session's Enterprise Framework v1.0.0): submitting valid credentials via the Navigation Drawer's standalone Login entry point returns the user to the Product Catalog screen, independently corroborated by the Navigation Drawer showing the authenticated-state marker ("Log Out" displayed, "Log In" absent) immediately after. Scoped to the standalone login path only — the Checkout-interrupted login path (relevant to FR-018) is a separate, still-unresolved item. |
 
 ### 6.3 Product Browsing
 
@@ -144,7 +152,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support interacting with the Sort control on the Product Catalog screen. |
 | Priority | Should |
 | Source | MA-AA-001 §6, §9 |
-| Acceptance Criteria | Sort control is selectable; resulting catalog re-ordering behavior is Out of Current Observation. |
+| Acceptance Criteria | Sort control is selectable and offers four options: Name - Ascending, Name - Descending, Price - Ascending, Price - Descending. Selecting an option dismisses the Sort dialog automatically and re-orders the Product Catalog accordingly — Name/Price Ascending or Descending re-orders alphabetically/numerically in the named direction. Name - Ascending is the Product Catalog's default sort state on app launch. Resolved via Phase 14.1 real-device automated-execution evidence and Phase 14.2 Enterprise Acceptance Review. |
 
 | Field | Value |
 |---|---|
@@ -191,7 +199,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support setting product quantity on the Product Details screen. |
 | Priority | Must |
 | Source | MA-AA-001 §9, §10 |
-| Acceptance Criteria | Quantity selector accepts a value change; exact control mechanics are Out of Current Observation. |
+| Acceptance Criteria | Quantity selector accepts a value change — **confirmed via Phase 10.3 runtime evidence** (real-device execution, this session, Enterprise Framework v1.0.0): each Increase/Decrease tap changes the displayed quantity by exactly 1, and reducing quantity to 0 disables the Add to Cart button. The selector's maximum bound and the Decrease control's own enabled/disabled state at the zero floor were not exercised and remain Out of Current Observation. |
 
 | Field | Value |
 |---|---|
@@ -200,7 +208,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support triggering Add to Cart from Product Details. |
 | Priority | Must |
 | Source | MA-AA-001 §5, §6 |
-| Acceptance Criteria | Add to Cart button is interactable; resulting state change is verifiable, exact destination is Out of Current Observation. |
+| Acceptance Criteria | Add to Cart button is interactable; tapping it does not navigate away from Product Details — the resulting, verifiable state change is the header cart badge transitioning from absent (empty cart) to present with an item count. Resolved via Task #16 reconciliation (this session); corroborated by MA-LOC-001 §6. |
 
 | Field | Value |
 |---|---|
@@ -256,7 +264,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support triggering Proceed to Checkout from the Cart screen. |
 | Priority | Must |
 | Source | MA-AA-001 §5, §6 |
-| Acceptance Criteria | Proceed to Checkout button is interactable; exact next-screen sequence relative to Login is Out of Current Observation. |
+| Acceptance Criteria | Proceed to Checkout button is interactable and triggers navigation whose destination is conditional on authentication state — **confirmed via Phase 11.7 real-device evidence** (this session, real device, Enterprise Framework v1.0.0): an anonymous user is redirected to the Login screen, and a successful login automatically resumes the checkout flow, landing directly on the Shipping Address screen; an already-authenticated user is taken directly to the Shipping Address screen, with no Login interstitial. Cart contents are preserved across every transition (verified via the header cart badge). |
 
 ### 6.6 Checkout — Shipping
 
@@ -305,7 +313,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support entering credit/debit card information on the Payment Method screen. |
 | Priority | Must |
 | Source | MA-AA-001 §9 |
-| Acceptance Criteria | Card entry fields accept input; individual field breakdown is Out of Current Observation. |
+| Acceptance Criteria | All four card entry fields — Cardholder Name, Card Number, Expiration Date, Security Code — accept and retain input (real-device evidence, Phase 12.3/12.5). Card Number auto-formats entered digits into space-grouped groups of four (e.g. `4111 1111 1111 1111`); Expiration Date auto-inserts a slash after the second digit (e.g. `12/25`) — both confirmed via `getText()` returning the formatted value, not the raw input. The Billing-Same-As-Shipping checkbox is checked by default. |
 
 | Field | Value |
 |---|---|
@@ -336,7 +344,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support triggering the Place Order action. |
 | Priority | Must |
 | Source | MA-AA-001 §6 |
-| Acceptance Criteria | Place Order action is triggerable; the exact screen hosting the trigger is Out of Current Observation. |
+| Acceptance Criteria | The Place Order action is hosted on the Review Order screen and is triggerable (real-device evidence, Phase 13.2/13.3) — tapping the Place Order button navigates to the Checkout Complete screen. |
 
 | Field | Value |
 |---|---|
@@ -356,7 +364,7 @@ Inherited from MA-PV-001 Section 10:
 | Description | Framework must support selecting each Navigation Drawer item (Catalog, WebView, QR Code Scanner, Geo Location, Drawing, About, Reset App State, FingerPrint, Virtual USB, Crash App (Debug), Login). |
 | Priority | Should |
 | Source | MA-AA-001 §6 |
-| Acceptance Criteria | Each drawer item is selectable; resulting screen content beyond Catalog and Login is Out of Current Observation. |
+| Acceptance Criteria | Each drawer item is selectable. Selecting WebView, QR Code Scanner, Geo Location, Drawing, About, FingerPrint, or Virtual USB navigates to that item's own screen (confirmed via its title, or for Virtual USB its one id-bearing element — Virtual USB is a separate Android Activity, not a fragment). Selecting Reset App State opens a confirmation dialog, not a navigation, which must be dismissed via Cancel. Resolved via Phase 15.1 real-device automated-execution evidence and Phase 15.2 Enterprise Acceptance Review. Crash App (Debug) is permanently excluded from automation — it intentionally terminates the app process — and remains untested; Catalog and Login destinations are covered by FR-001/FR-004/FR-018, not by this requirement. |
 
 | Field | Value |
 |---|---|
@@ -466,15 +474,15 @@ Inherited from MA-PV-001 Section 11.2:
 | Requirement Category | Source Document | Observed | Remarks |
 |---|---|---|---|
 | Application Launch | MA-AA-001 | Yes | Fully observed |
-| Authentication | MA-AA-001 | Partial | Post-login destination Out of Current Observation |
-| Product Browsing | MA-AA-001 | Partial | Sort behavior Out of Current Observation |
-| Product Details | MA-AA-001 | Partial | Add to Cart destination Out of Current Observation |
-| Cart | MA-AA-001 | Partial | Sequence with Login Out of Current Observation |
+| Authentication | MA-AA-001 | Yes | Post-login destination resolved as of v1.2 (Phase 10.1A) — see Version History |
+| Product Browsing | MA-AA-001 | Yes | Sort control resulting re-ordering behavior resolved as of v1.7 (Phase 14.2A, using Phase 14.1/14.2 real-device evidence) — see Version History |
+| Product Details | MA-AA-001 | Partial | Quantity selector step-size/floor mechanics (FR-011) resolved as of v1.3 (Phase 10.4A, using Phase 10.3 runtime evidence); the selector's maximum bound remains Out of Current Observation. Add to Cart destination (FR-012) resolved as of v1.1 — see Version History |
+| Cart | MA-AA-001 | Yes | Proceed to Checkout ↔ Login sequencing resolved as of v1.4 (Phase 11.9A, using Phase 11.7 runtime evidence) — see Version History |
 | Checkout — Shipping | MA-AA-001 | Yes | Fully observed |
-| Checkout — Payment | MA-AA-001 | Partial | Individual card fields Out of Current Observation |
+| Checkout — Payment | MA-AA-001 | Yes | Card entry field structure and formatting behavior resolved as of v1.5 (Phase 12.7A, using Phase 12.3/12.5 runtime evidence) — see Version History |
 | Order Review | MA-AA-001 | Yes | Fully observed |
-| Order Placement | MA-AA-001 | Partial | Hosting screen for Place Order Out of Current Observation |
-| Navigation | MA-AA-001 | Partial | Drawer item destinations beyond Catalog/Login Out of Current Observation |
+| Order Placement | MA-AA-001 | Yes | Place Order hosting screen (Review Order) resolved as of v1.6 (Phase 13.3A, using Phase 13.2/13.3 real-device evidence) — see Version History |
+| Navigation | MA-AA-001 | Yes | Drawer item destinations resolved as of v1.8 (Phase 15.2A, using Phase 15.1/15.2 real-device evidence) — see Version History. Crash App (Debug) permanently excluded from automation, not a gap |
 | Error Handling | MA-AA-001 | No | Explicitly listed as not analyzed |
 | State Management | MA-AA-001 | Yes | Derived from documented dynamic UI elements |
 | Non-Functional Requirements | MA-PV-001 | Yes | Derived from Project Principles, Deliverables, Supported Execution Modes, Constraints |
@@ -494,4 +502,4 @@ Inherited from MA-PV-001 Section 11.2:
 
 ---
 
-**End of Document — MA-RS-001, v1.0**
+**End of Document — MA-RS-001, v1.8**

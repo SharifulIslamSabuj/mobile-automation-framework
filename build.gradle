@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'com.mobileautomation.framework'
-version = '0.1.0'
+version = '1.0.0'
 
 java {
     toolchain {
@@ -90,4 +90,10 @@ test {
     // run it exactly as before; this only prevents "zero tests" itself from being an error
     // during the foundation-only phases.
     failOnNoDiscoveredTests = false
+}
+
+task printTestRuntimeClasspath {
+    doLast {
+        println sourceSets.test.runtimeClasspath.asPath
+    }
 }

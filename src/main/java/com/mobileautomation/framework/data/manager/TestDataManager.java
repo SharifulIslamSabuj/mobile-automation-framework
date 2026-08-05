@@ -2,7 +2,9 @@ package com.mobileautomation.framework.data.manager;
 
 import com.mobileautomation.framework.data.environment.TestDataEnvironmentResolver;
 import com.mobileautomation.framework.data.factory.LoginDataFactory;
+import com.mobileautomation.framework.data.factory.PaymentDataFactory;
 import com.mobileautomation.framework.data.factory.ProductDataFactory;
+import com.mobileautomation.framework.data.factory.ShippingDataFactory;
 import com.mobileautomation.framework.data.factory.UserDataFactory;
 import com.mobileautomation.framework.data.loader.DataLoader;
 
@@ -62,6 +64,14 @@ public final class TestDataManager {
     }
 
     public ProductDataFactory productData() {
-        return new ProductDataFactory();
+        return new ProductDataFactory(this);
+    }
+
+    public ShippingDataFactory shippingData() {
+        return new ShippingDataFactory(this);
+    }
+
+    public PaymentDataFactory paymentData() {
+        return new PaymentDataFactory(this);
     }
 }

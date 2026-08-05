@@ -108,8 +108,8 @@ This was verified directly in this phase (not via a TestNG Test Class, which is 
 | `driver.explicitWaitTimeoutSeconds` | Driver | `15` | — |
 | `driver.pageLoadTimeoutSeconds` | Driver | `30` | — |
 | `execution.mode` | Execution | current `Environment`'s name | See §9 for the `Environment` vs `ExecutionMode` relationship |
-| `execution.noReset` | Execution | `true` | — |
-| `execution.fullReset` | Execution | `false` | — |
+| `execution.strategy` | Execution | `ISOLATED` | Added Phase 9.5I. `ISOLATED` (default) guarantees no AUT state survives between tests (`isNoReset()` returns `false`); `FAST` reuses AUT state (`isNoReset()` returns `true`) for local debugging only. Replaces the formerly independent `execution.noReset` key — see `config.ExecutionStrategy`. |
+| `execution.fullReset` | Execution | `false` | Independent of `execution.strategy` — remains `false` in every case; Phase 9.5H found `fullReset=true` unusable today (`app.path` is blank) and Phase 9.5I did not change that |
 | `execution.autoGrantPermissions` | Execution | `true` | — |
 | `execution.retryCount` | Test Execution | `1` | — |
 | `report.directory` | Reporting | `"reports"` | — |

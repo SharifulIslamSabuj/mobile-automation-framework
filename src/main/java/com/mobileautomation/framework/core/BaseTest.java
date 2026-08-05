@@ -31,7 +31,8 @@ public abstract class BaseTest {
 
     @BeforeMethod(alwaysRun = true)
     public void initializeDriver() {
-        logger.info("Initializing driver for test method.");
+        logger.info("Initializing driver for test method. Execution Strategy: {} (noReset={}).",
+                config().getExecutionStrategy(), config().isNoReset());
         DriverProvider.initializeDriver();
     }
 

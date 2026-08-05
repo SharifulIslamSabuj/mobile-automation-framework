@@ -41,7 +41,10 @@ public final class ConfigurationDefaults {
     public static final int DEFAULT_PAGE_LOAD_TIMEOUT_SECONDS = 30;
 
     // Execution
-    public static final boolean DEFAULT_NO_RESET = true;
+    // Added Phase 9.5I — see config.ExecutionStrategy; ISOLATED (clean AUT state
+    // guaranteed per test) is the enterprise-default, replacing the former
+    // DEFAULT_NO_RESET=true default that allowed state to persist.
+    public static final String DEFAULT_EXECUTION_STRATEGY = "ISOLATED";
     public static final boolean DEFAULT_FULL_RESET = false;
     public static final boolean DEFAULT_AUTO_GRANT_PERMISSIONS = true;
     public static final int DEFAULT_RETRY_COUNT = 1;

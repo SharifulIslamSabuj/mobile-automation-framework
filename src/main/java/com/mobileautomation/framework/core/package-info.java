@@ -5,6 +5,9 @@
  * base), {@code ElementActions} (reusable Selenium/Appium interaction
  * wrapper), and {@code NavigationHelper} (generic navigation operations).
  * None of these four classes contains application-specific or business
- * logic. See docs/framework/BASE_FRAMEWORK_ARCHITECTURE.md.
+ * logic. {@code ElementActions.findAll(By)} was added in Phase 9.2 —
+ * a minimal, additive extension needed for RecyclerView/list-shaped
+ * screens (MA-LOC-001 §19.1), following the exact same pattern as every
+ * pre-existing method. See docs/framework/BASE_FRAMEWORK_ARCHITECTURE.md.
  */
 package com.mobileautomation.framework.core;

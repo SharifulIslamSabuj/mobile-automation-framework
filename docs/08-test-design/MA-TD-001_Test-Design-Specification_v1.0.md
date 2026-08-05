@@ -1,18 +1,18 @@
 ---
 document_id: MA-TD-001
 title: Test Design Specification
-version: v1.0
+version: v1.9
 status: Draft
 author: Project Owner / Repository Maintainer
 created_date: 2026-07-29
-last_updated: 2026-07-29
+last_updated: 2026-08-04
 reviewed_by: Pending
 approved_by: Pending
 project: Mobile Automation Framework
 project_code: MA
 aut_name: Sauce Labs Android Demo App
 aut_version: 2.2.0
-related_documents: [MA-PV-001, MA-AA-001, MA-RS-001, MA-TS-001, MA-FA-001, MA-TP-001]
+related_documents: [MA-PV-001, MA-AA-001, MA-RS-001, MA-TS-001, MA-FA-001, MA-TP-001, MA-LOC-001]
 classification: Internal
 ---
 
@@ -24,7 +24,7 @@ classification: Internal
 |---|---|
 | Document ID | MA-TD-001 |
 | Document Name | Test Design Specification |
-| Version | v1.0 |
+| Version | v1.9 |
 | Status | Draft |
 | Project | Mobile Automation Framework |
 | Project Code | MA |
@@ -41,6 +41,15 @@ classification: Internal
 |---|---|---|---|
 | v0.1 | 2026-07-29 | Project Owner | Initial draft derived from MA-PV-001, MA-AA-001, MA-RS-001, MA-TS-001, MA-FA-001, MA-TP-001 |
 | v1.0 | 2026-07-29 | Project Owner | First baseline version submitted for approval |
+| v1.1 | 2026-08-01 | Project Owner | TC-012 Isolated Resolution: TS-012's Expected Result resolved from "Out of Current Observation" using Task #16 reconciliation evidence (this session) and MA-LOC-001 §6, §8. Section 11/12 references to TS-012 as an unresolved elevated-risk item updated accordingly. No other scenario modified. |
+| v1.2 | 2026-08-02 | Project Owner | Phase 9.5A (Pilot Product Reconciliation): TS-012's Precondition changed from "Product Details screen is displayed" to "Product Catalog is displayed", and its Section 10 dependency changed from TS-009 to TS-001, reflecting TC-012's pilot now performing its own Product Card location/verification rather than depending on TC-009's generic navigation. No other scenario modified. |
+| v1.3 | 2026-08-02 | Project Owner | Phase 10.1A (Authentication Module Documentation Reconciliation): TS-004's Expected Result resolved from "Out of Current Observation" using Phase 9.5G runtime evidence (this session, Enterprise Framework v1.0.0) — Product Catalog destination, corroborated by the Navigation Drawer's authenticated-state marker. Section 10's TS-018↔Login dependency note narrowed to reflect only FR-018 (still unresolved) as the blocker, not FR-004. Section 11/12 unresolved-item lists updated (five→four remaining). No other scenario modified. |
+| v1.4 | 2026-08-02 | Project Owner | Phase 10.4A (Product Details Module Documentation Reconciliation): TS-011's Expected Result partially resolved from "Out of Current Observation" using Phase 10.3 runtime evidence (this session, real-device execution) — Increase/Decrease each change quantity by exactly 1, and reducing to 0 disables Add to Cart. Scoped precisely: the selector's maximum bound and the Decrease control's own state at the zero floor were not exercised and remain Out of Current Observation — not inferred. Section 10/11 dependency and risk notes reviewed; neither references TS-011 as an elevated-risk item, so neither required a change. No other scenario modified. |
+| v1.5 | 2026-08-04 | Project Owner | Phase 11.9A (Cart Module — TC-018 Documentation Reconciliation): TS-018's Expected Result fully resolved from "Out of Current Observation" using Phase 11.7 real-device evidence (this session) — destination is conditional on authentication state (Login with auto-resume to Shipping if anonymous; Shipping directly if authenticated), Cart contents preserved. Section 10's TS-018↔TS-002–TS-004 dependency note rewritten from "unresolved" to the confirmed conditional relationship. Section 11 Assumptions and Section 12 Risks updated: TS-018 removed from the "unresolved elevated-risk items" list (four→three remaining: TS-006, TS-026, TS-028) and added to the resolved-items citation, alongside TS-012 (v1.1) and TS-004 (v1.3). No other scenario modified. |
+| v1.6 | 2026-08-04 | Project Owner | Phase 12.7A (Payment Module Documentation Reconciliation): TS-023's Expected Result fully resolved from "Out of Current Observation" using Phase 12.5/12.6 real-device evidence (this session) — card entry fields accept and retain values across exactly four confirmed fields (Cardholder Name, Card Number, Expiration Date, Security Code); Card Number/Expiration Date auto-format as space-grouped digits / slash-inserted date respectively; the Billing-Same-As-Shipping checkbox is checked by default. TS-022 reviewed against Phase 12.3/12.4 evidence and found to already match implemented automation — no change required. Section 10's TS-022/TS-023/TS-024↔TS-021 dependency note reviewed and confirmed still accurate — no change required. Section 11 Assumptions and Section 12 Risks reviewed: TS-023 was never listed among the "unresolved elevated-risk items" (TS-006, TS-026, TS-028 — an MA-TS-001 §8-sourced list unrelated to TD-003), so neither section required a change. No other scenario modified. |
+| v1.7 | 2026-08-04 | Project Owner | Phase 13.3A (TC-026 Documentation Reconciliation): TS-026's Expected Result fully resolved from "Out of Current Observation" using Phase 13.2 real-device automated-execution evidence and Phase 13.3 Enterprise Acceptance Review (this session) — the Place Order action is hosted on the Review Order screen, confirmed via the Place Order button (accessibility id "Completes the process of checkout", fourth reuse of resource-id `paymentBtn`). Section 10's TS-026/TS-027↔TS-025 dependency note reviewed and confirmed still accurate — no change required. Section 11 Assumptions and Section 12 Risks updated: TS-026 removed from the "unresolved elevated-risk items" list (three→two remaining: TS-006, TS-028) and added to the resolved-items citation, alongside TS-012 (v1.1), TS-004 (v1.3), and TS-018 (v1.5). No other scenario modified. |
+| v1.8 | 2026-08-04 | Project Owner | Phase 14.2A (Product Sort — TC-006 Documentation Reconciliation): TS-006's Expected Result fully resolved from "Out of Current Observation" using Phase 14.1 real-device automated-execution evidence and Phase 14.2 Enterprise Acceptance Review (this session) — the Sort control's four options (Name Ascending/Descending, Price Ascending/Descending) each re-order the Product Catalog correctly in the named direction; Name Ascending is the default sort state. Section 10 reviewed: TS-006 has no formally listed dependency — no change required. Section 11 Assumptions and Section 12 Risks updated: TS-006 removed from the "unresolved elevated-risk items" list (two→one remaining: TS-028) and added to the resolved-items citation, alongside TS-012 (v1.1), TS-004 (v1.3), TS-018 (v1.5), and TS-026 (v1.7). No other scenario modified. |
+| v1.9 | 2026-08-05 | Project Owner | Phase 15.2A (Navigation — TC-028 Documentation Reconciliation): TS-028's Expected Result fully resolved from "Out of Current Observation" using Phase 15.1 real-device automated-execution evidence and Phase 15.2 Enterprise Acceptance Review (this session) — the seven navigable drawer items (WebView, QR Code Scanner, Geo Location, Drawing, About, FingerPrint, Virtual USB) each navigate to their own screen; Reset App State opens a dismissible confirmation dialog, not a navigation. Crash App (Debug) remains permanently excluded — not evaluated by this Scenario. Section 10 reviewed: TS-028's existing dependency (TS-008, Navigation Drawer open) confirmed still accurate — no change required. Section 11 Assumptions and Section 12 Risks updated: TS-028 removed from the "unresolved elevated-risk items" list — **zero items remain**, the list is fully resolved — and added to the resolved-items citation, alongside TS-012 (v1.1), TS-004 (v1.3), TS-018 (v1.5), TS-026 (v1.7), and TS-006 (v1.8). No other scenario modified. |
 
 ---
 
@@ -122,7 +131,7 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Priority | Should |
 | Precondition | Valid credentials entered on Login screen |
 | Description | Verify the screen displayed immediately after Login submission is capturable and verifiable |
-| Expected Result | A resulting screen is displayed and identifiable; exact destination is Out of Current Observation per MA-RS-001 FR-004 |
+| Expected Result | A resulting screen is displayed and identifiable: the Product Catalog screen. Resolved via Phase 9.5G runtime evidence (this session, Enterprise Framework v1.0.0) — the Navigation Drawer's authenticated-state marker ("Log Out" present, "Log In" absent) independently corroborates successful authentication, not just screen identity. Scoped to the standalone login path (via the Navigation Drawer) only. |
 
 ### 7.3 Product Browsing
 
@@ -143,8 +152,8 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Scenario Title | Verify Sort control is interactable |
 | Priority | Should |
 | Precondition | Product Catalog screen is displayed |
-| Description | Verify the Sort control on the Product Catalog can be selected |
-| Expected Result | Sort control is selectable; resulting catalog behavior is Out of Current Observation per MA-RS-001 FR-006 |
+| Description | Verify the Sort control on the Product Catalog can be selected and each sort option correctly re-orders the catalog |
+| Expected Result | Sort control opens a dialog offering four options (Name - Ascending, Name - Descending, Price - Ascending, Price - Descending); selecting an option dismisses the dialog automatically and re-orders the Product Catalog correctly in the named direction; Name - Ascending is the default sort state on app launch. Resolved per MA-RS-001 FR-006 (v1.7, Phase 14.2A) |
 
 | Field | Value |
 |---|---|
@@ -196,7 +205,7 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Priority | Must |
 | Precondition | Product Details screen is displayed |
 | Description | Verify the quantity selector accepts a value change |
-| Expected Result | Quantity value changes in response to interaction; exact control mechanics are Out of Current Observation per MA-RS-001 FR-011 |
+| Expected Result | Quantity value changes in response to interaction — confirmed via Phase 10.3 real-device evidence: Increase/Decrease each change the value by exactly 1, and quantity can reach 0, at which point the Add to Cart button is disabled. The selector's maximum bound and the Decrease control's own state at the zero floor were not exercised and remain Out of Current Observation per MA-RS-001 FR-011 (Phase 10.4A) |
 
 | Field | Value |
 |---|---|
@@ -204,9 +213,9 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Requirement ID | FR-012 |
 | Scenario Title | Verify Add to Cart action |
 | Priority | Must |
-| Precondition | Product Details screen is displayed |
+| Precondition | Product Catalog is displayed. Updated 2026-08-02 (Phase 9.5A) from "Product Details screen is displayed" — TC-012's pilot now performs its own Product Card location and verification as part of reaching Product Details, rather than treating it as an external precondition |
 | Description | Verify the Add to Cart button is interactable and triggers a state change |
-| Expected Result | A verifiable state change occurs; exact resulting screen is Out of Current Observation per MA-RS-001 FR-012 |
+| Expected Result | User remains on the Product Details screen; the header cart badge appears (previously absent) showing the current item count. Resolved via Task #16 reconciliation (this session); corroborated by MA-LOC-001 §6, §8 |
 
 | Field | Value |
 |---|---|
@@ -268,7 +277,7 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Priority | Must |
 | Precondition | Cart screen is displayed with at least one item |
 | Description | Verify the Proceed to Checkout button is interactable and advances the flow |
-| Expected Result | A next screen in the checkout sequence is displayed; exact sequence relative to Login is Out of Current Observation per MA-RS-001 FR-018 |
+| Expected Result | A next screen in the checkout sequence is displayed, conditional on authentication state — confirmed via Phase 11.7 real-device evidence (this session): the Login screen if the user is anonymous (with automatic resume to the Shipping Address screen after successful login), or the Shipping Address screen directly if the user is already authenticated. Cart contents are preserved across the transition |
 
 ### 7.6 Checkout — Shipping
 
@@ -322,7 +331,7 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Priority | Must |
 | Precondition | Payment Method screen is displayed |
 | Description | Verify card entry fields accept input |
-| Expected Result | Card entry fields accept and retain entered values; individual field breakdown is Out of Current Observation per MA-RS-001 FR-023 |
+| Expected Result | All four card entry fields — Cardholder Name, Card Number, Expiration Date, Security Code — accept and retain entered values (real-device evidence, Phase 12.3/12.5). Card Number auto-formats into space-grouped groups of four (e.g. `4111 1111 1111 1111`); Expiration Date auto-inserts a slash after the second digit (e.g. `12/25`). The Billing-Same-As-Shipping checkbox is checked by default. |
 
 | Field | Value |
 |---|---|
@@ -356,7 +365,7 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Priority | Must |
 | Precondition | Review Order screen is displayed |
 | Description | Verify the Place Order action is triggerable |
-| Expected Result | Place Order action is triggerable; exact hosting screen is Out of Current Observation per MA-RS-001 FR-026 |
+| Expected Result | The Place Order button on the Review Order screen is displayed, enabled, and triggerable; tapping it navigates to the Checkout Complete screen (real-device evidence, Phase 13.2/13.3) |
 
 | Field | Value |
 |---|---|
@@ -377,8 +386,8 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | Scenario Title | Verify Navigation Drawer items are selectable |
 | Priority | Should |
 | Precondition | Navigation Drawer is open |
-| Description | Verify each listed Navigation Drawer item can be selected |
-| Expected Result | Each item responds to selection; resulting screen content beyond Catalog and Login is Out of Current Observation per MA-RS-001 FR-028 |
+| Description | Verify each verified Navigation Drawer item can be selected and produces its confirmed resulting state |
+| Expected Result | Each of the seven navigable items (WebView, QR Code Scanner, Geo Location, Drawing, About, FingerPrint, Virtual USB) navigates to its own screen; Reset App State opens a dismissible confirmation dialog. Resolved per MA-RS-001 FR-028 (v1.8, Phase 15.2A). Crash App (Debug) permanently excluded — not evaluated by this Scenario |
 
 | Field | Value |
 |---|---|
@@ -484,7 +493,7 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 |---|---|---|
 | TS-009 | TS-001 | Requires Catalog to be displayed first |
 | TS-010, TS-011, TS-013, TS-032 | TS-009 | Require Product Details screen to be reached first |
-| TS-012 | TS-009 | Add to Cart requires Product Details to be displayed |
+| TS-012 | TS-001 | Updated 2026-08-02 (Phase 9.5A) — was TS-009. TC-012's pilot now reaches Product Details via its own Product Card location/verification steps, starting from Product Catalog directly, rather than depending on TC-009's generic navigation |
 | TS-007, TS-031 | TS-012 | Cart-related dynamic elements require an item to have been added first |
 | TS-014 | TS-012 | Cart screen access is meaningful once an item exists |
 | TS-015, TS-016, TS-017 | TS-014 | Require Cart screen with at least one item |
@@ -497,12 +506,12 @@ Pattern: `TS-<3-digit sequence>`, numbered sequentially across the entire docume
 | TS-028 | TS-008 | Requires Navigation Drawer to be open |
 | TS-029 | TS-009 | Back navigation requires Product Details to be reached first |
 
-The exact dependency between TS-018 (Proceed to Checkout) and TS-002–TS-004 (Login) remains unresolved, consistent with the "Out of Current Observation" status of FR-018 and FR-004 in MA-RS-001; this chain will be confirmed during the manual verification pass committed to in MA-TS-001 Section 8.
+The dependency between TS-018 (Proceed to Checkout) and TS-002–TS-004 (Login) is **resolved as of v1.5** (Phase 11.9A, using Phase 11.7 real-device evidence): the relationship is conditional, not a fixed sequencing — TS-018 triggers TS-002–TS-004's Login screen only when the user is not already authenticated, and automatically resumes to TS-019 (Shipping Address) after successful login; an already-authenticated user reaches TS-019 directly, without TS-002–TS-004 being exercised at all. FR-004 itself (the standalone Login outcome, independent of the checkout chain) was resolved as of v1.3 — see Version History; both resolutions are evidence-based and independent of each other.
 
 ## 11. Assumptions
 
 - The AUT's screen structure and behavior remain consistent with MA-AA-001 observations at execution time.
-- The elevated-risk items identified in MA-TS-001 Section 8 (Login sequencing, Add to Cart destination, Place Order hosting screen, Drawer item destinations, Sort behavior) will be resolved through manual verification before or during execution of the scenarios that depend on them (TS-004, TS-006, TS-012, TS-018, TS-026, TS-028).
+- The elevated-risk items identified in MA-TS-001 Section 8 (Drawer item destinations, Sort behavior) have all now been resolved through real-device verification — none remain outstanding. TS-012's Add to Cart destination item is resolved as of v1.1; TS-004's Login sequencing item is resolved as of v1.3; TS-018's Proceed to Checkout ↔ Login sequencing item is resolved as of v1.5 (Phase 11.9A, using Phase 11.7 runtime evidence); TS-026's Place Order hosting screen item is resolved as of v1.7 (Phase 13.3A, using Phase 13.2 real-device evidence); TS-006's Sort control resulting re-ordering behavior item is resolved as of v1.8 (Phase 14.2A, using Phase 14.1 real-device automated-execution evidence and Phase 14.2 Enterprise Acceptance Review); TS-028's Navigation Drawer item destinations item is resolved as of v1.9 (Phase 15.2A, using Phase 15.1 real-device automated-execution evidence and Phase 15.2 Enterprise Acceptance Review) — see Version History.
 - A single contributor designs, implements, and executes these scenarios, consistent with MA-PV-001 Section 19 (C-6).
 
 ## 12. Risks
@@ -510,7 +519,7 @@ The exact dependency between TS-018 (Proceed to Checkout) and TS-002–TS-004 (L
 | Risk | Note |
 |---|---|
 | Checkout dependency chain concentration | A failure at TS-014 (Cart access) or earlier blocks execution of all downstream checkout scenarios (TS-018–TS-027) |
-| Unresolved elevated-risk items (MA-TS-001 §8) | Six scenarios (TS-004, TS-006, TS-012, TS-018, TS-026, TS-028) cannot be finalized until manual verification is complete |
+| ~~Unresolved elevated-risk items (MA-TS-001 §8)~~ — **Fully resolved Phase 15.2A** | Zero scenarios remain unresolved. TS-012 resolved as of v1.1 (Task #16 reconciliation; MA-LOC-001 §6, §8). TS-004 resolved as of v1.3 (Phase 9.5G/10.1A runtime evidence). TS-018 resolved as of v1.5 (Phase 11.7 real-device evidence, Phase 11.9A reconciliation). TS-026 resolved as of v1.7 (Phase 13.2 real-device automated-execution evidence, Phase 13.3A reconciliation). TS-006 resolved as of v1.8 (Phase 14.1 real-device automated-execution evidence, Phase 14.2A reconciliation). TS-028 resolved as of v1.9 (Phase 15.1 real-device automated-execution evidence, Phase 15.2A reconciliation) — this was the last remaining item |
 | Scope creep during scenario refinement | Inherited from MA-PV-001 Section 20, R-1 |
 | Environment instability affecting scenario execution reliability | Inherited from MA-PV-001 Section 20, R-2 |
 
@@ -525,4 +534,4 @@ The exact dependency between TS-018 (Proceed to Checkout) and TS-002–TS-004 (L
 
 ---
 
-End of Document — MA-TD-001, v1.0
+End of Document — MA-TD-001, v1.9

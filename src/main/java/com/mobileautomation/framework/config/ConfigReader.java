@@ -196,8 +196,26 @@ public final class ConfigReader {
         return ExecutionMode.fromConfigValue(getString(ConfigurationKeys.EXECUTION_MODE, environment.name()));
     }
 
+    /**
+     * The active {@link ExecutionStrategy} — {@link ExecutionStrategy#ISOLATED}
+     * unless {@code execution.strategy} is explicitly set otherwise. Added
+     * Phase 9.5I.
+     */
+    public ExecutionStrategy getExecutionStrategy() {
+        return ExecutionStrategy.fromConfigValue(
+                getString(ConfigurationKeys.EXECUTION_STRATEGY, ConfigurationDefaults.DEFAULT_EXECUTION_STRATEGY));
+    }
+
+    /**
+     * Derived from {@link #getExecutionStrategy()} as of Phase 9.5I:
+     * {@link ExecutionStrategy#FAST} requests {@code noReset=true} (reuse
+     * AUT state); {@link ExecutionStrategy#ISOLATED} (the default) requests
+     * {@code noReset=false}, so Appium clears the AUT's own data at every
+     * session start. No longer an independently-set configuration value —
+     * see {@code config.ExecutionStrategy}'s Javadoc for why.
+     */
     public boolean isNoReset() {
-        return getBoolean(ConfigurationKeys.EXECUTION_NO_RESET, ConfigurationDefaults.DEFAULT_NO_RESET);
+        return getExecutionStrategy() == ExecutionStrategy.FAST;
     }
 
     public boolean isFullReset() {

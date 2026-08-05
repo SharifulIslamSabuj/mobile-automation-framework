@@ -86,7 +86,7 @@ Every failure — missing file, malformed JSON/YAML/Properties, unsupported exte
 
 Models are immutable Java **records** (`LoginCredentials`, `UserProfile`, `ProductItem`), not Lombok-generated classes — records are natively Jackson-deserializable (since Jackson 2.12, via `RecordComponent` introspection, no extra module needed — confirmed empirically: all three loaded correctly) and give immutability, `equals`/`hashCode`/`toString`, and compile-time field declaration for free. Each implements `java.io.Serializable` per the phase's explicit checklist. Every field the framework itself needs to enforce as present is annotated `@Required` (from `data.validator`); optional fields (e.g. `UserProfile.phone`) are left unannotated.
 
-No field or sample value is tied to the Sauce Labs demo app or any other real AUT — `LoginCredentials`/`UserProfile`/`ProductItem` are deliberately generic shapes any mobile app's login/registration/catalog screens could use, and the checked-in sample datasets (`src/test/resources/testdata/**`) use obviously placeholder values (`sample_user`, `Sample@Pass123`, `Sample Product`) rather than this project's actual test credentials or product names.
+The model *shapes* (`LoginCredentials`/`UserProfile`/`ProductItem`) are deliberately generic — any mobile app's login/registration/catalog screens could use them. **Update, Phase 9.3 (Pilot Test Data Implementation):** `testdata/common/login/credentials.json` and the new `testdata/common/product/pilot.json` now hold this project's real, Manual-Verification-Phase-verified Pilot values (TC-004/TC-012 only — see docs/framework/PILOT_AUTOMATION_DESIGN_SPECIFICATION.md and docs/framework/PRE_IMPLEMENTATION_DOCUMENTATION_RECONCILIATION.md), not placeholder data. `UserProfile`'s sample dataset (`testdata/common/user/profile.yaml`, unused by the pilot) remains generic placeholder data, as does every Faker-generated value.
 
 ## 6. Factory Strategy
 
@@ -99,6 +99,7 @@ No field or sample value is tied to the Sauce Labs demo app or any other real AU
 | | `blankCredentials()` | Negative data (`NegativeDataProvider`) |
 | `UserDataFactory` | `fakeUserProfile()` | Faker + Dynamic data (`FakerProvider` + `DynamicDataGenerator`) |
 | `ProductDataFactory` | `fakeProduct()` | Faker data (`FakerProvider`) |
+| | `pilotProduct()` | Environment data (via `TestDataManager.loadEnvironmentData`) — added Phase 9.3, mirrors `LoginDataFactory.standardCredentials()`'s existing pattern exactly; required `ProductDataFactory` to gain the same `TestDataManager` constructor dependency `LoginDataFactory` already had |
 
 Factories are obtained through `TestDataManager` (`manager.loginData()`/`.userData()`/`.productData()`), never instantiated directly by a future test that only has `TestDataManager` in view — though see §9 for the one caveat on enforcement.
 
@@ -137,11 +138,12 @@ TestDataEnvironmentResolver.resolve("login/credentials.json")
         ├─ ConfigReader.getInstance().getEnvironment()  →  e.g. EMULATOR ("emulator")
         │
         ├─ try  "testdata/emulator/login/credentials.json"   — exists on classpath? use it.
+        │        (no such override currently exists for this resource — see note below)
         │
-        └─ else "testdata/common/login/credentials.json"     — environment-agnostic fallback
+        └─ else "testdata/common/login/credentials.json"     — environment-agnostic fallback (currently always taken)
 ```
 
-The environment segment is never hardcoded — it comes from the already-frozen `config.Environment` enum (`EMULATOR`/`REAL_DEVICE`, from Phase 3), not the illustrative `dev/qa/staging/production` folder names in the phase prompt (see §9 for why). `src/test/resources/testdata/` contains `common/` (environment-agnostic defaults) and `emulator/` (one override, `login/credentials.json`, added specifically to prove the resolution path empirically — see §10). No `real-device/` folder exists yet, which is exactly what proved the fallback path works: requesting data under `-Denv=real-device` correctly fell back to `common/`.
+The environment segment is never hardcoded — it comes from the already-frozen `config.Environment` enum (`EMULATOR`/`REAL_DEVICE`, from Phase 3), not the illustrative `dev/qa/staging/production` folder names in the phase prompt (see §9 for why). At the time this mechanism was first validated (Phase 8, §10), `src/test/resources/testdata/emulator/login/credentials.json` existed purely to prove the override path empirically with placeholder values; it was removed in Phase 9.3 once the Pilot's real login credential was verified and found to be environment-independent (the same AUT, same demo credential, regardless of emulator vs. real device) — keeping a duplicate per-environment file with identical content would have been exactly the "no duplicated datasets unless values actually differ" case this resolver exists to avoid. Today every resource under `testdata/` resolves via the `common/` fallback; the `<environment>/` override path remains fully implemented and available the moment a value that actually does differ by environment is introduced.
 
 ## 9. Architectural Decisions Requiring Approval
 
@@ -166,6 +168,8 @@ The environment segment is never hardcoded — it comes from the already-frozen 
 | Faker generates valid data | **Empirically verified** — `UserDataFactory.fakeUserProfile()` and `ProductDataFactory.fakeProduct()` produced non-blank names and a syntactically valid email/positive price |
 | Dynamic generators work correctly | **Empirically verified** — two `DynamicDataGenerator.uniqueUsername()` calls produced distinct values; `uuid()`/`timestamp()`/`sessionValue()`/`phoneNumber()` all returned well-formed values |
 | Framework builds successfully | `gradlew clean build` (main) and `gradlew compileTestJava` (test) both BUILD SUCCESSFUL against the real `jackson-dataformat-yaml`/`jackson-dataformat-properties`/`datafaker` 2.4.3 APIs — verified via `javap` before writing dependent code, so no guessed method name needed correction |
+
+**Currency note (Phase 9.3):** the table above is the historical Phase 8 record and remains accurate to *what it validated at the time* — the loading mechanism itself. Two specific details it cites have since changed: `testdata/common/login/credentials.json`'s content is no longer the placeholder shown (§5's update, above), and the `emulator/login/credentials.json` override file referenced in the Environment-switching row no longer exists (§8's update, above). The mechanism both rows validated is unaffected and was re-verified with the real Pilot data in Phase 9.3 via an equivalent throwaway program.
 
 Two additional checks beyond the required list were also run and passed: `DataValidator` correctly rejected a blank `password` field (`DataValidationException`), and `TestDataManager`'s cache returned the identical object reference (`==`) on a second load of the same resource, confirming caching actually occurs rather than re-reading the file.
 

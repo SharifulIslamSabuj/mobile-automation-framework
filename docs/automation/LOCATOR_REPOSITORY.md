@@ -6,7 +6,7 @@
 |---|---|
 | Document ID | MA-LOC-001 |
 | Title | Centralized Locator Repository |
-| Version | v1.0 |
+| Version | v1.1 |
 | Status | Draft |
 | Source of Truth | [saucelabs/my-demo-app-android](https://github.com/saucelabs/my-demo-app-android) |
 | Source Commit | `8cf5fac23ca6cedafe7be3c63fad8fe4ee6f5612` (2024-12-12) |
@@ -417,7 +417,7 @@ These are **standard Android platform `AlertDialog`** instances (title/message/p
 
 | Element Name | Locator Type | Locator Value | Priority | Source File | Line | Reason | Alternative | Notes |
 |---|---|---|---|---|---|---|---|---|
-| Reset — Dialog Title | Platform Resource ID | `android:id/alertTitle` | 2 | N/A (Android platform) | N/A | Standard framework id | Text "Reset App State" | Confirmed matching Phase 2 device evidence |
+| Reset — Dialog Title | App-namespaced Resource ID | `com.saucelabs.mydemoapp.android:id/alertTitle` | 2 | N/A (Android platform) | N/A | Standard `AlertDialog.Builder` title view | Text "Reset App State" | **Corrected Phase 15.2A**: previously documented as the platform-namespaced `android:id/alertTitle`, citing "Confirmed matching Phase 2 device evidence." A fresh `uiautomator dump` taken on this project's real device (vivo I2301, Android 15) during Phase 15.1's runtime validation — after a reproducible (3/3) automated test failure at the platform-namespaced locator — showed the title view actually resolves to the app-namespaced id above. Message/Cancel/Confirm below were independently re-confirmed in the same dump to remain correctly platform-namespaced — only the title differs. This is a genuine discrepancy between the originally documented evidence and this specific device's actual rendering, not a transcription error caught in review; the original "Confirmed matching Phase 2 device evidence" note may reflect a different device/emulator than the one this project's automation now targets |
 | Reset — Message | Platform Resource ID | `android:id/message` | 2 | N/A | N/A | Standard framework id | Text "Are you sure you want to Reset the App" | — |
 | Reset — Cancel Button | Platform Resource ID | `android:id/button2` | 2 | N/A | N/A | Standard framework id | Text "CANCEL" | — |
 | Reset — Confirm Button | Platform Resource ID | `android:id/button1` | 2 | N/A | N/A | Standard framework id | Text "RESET APP" | — |
@@ -538,3 +538,4 @@ Aside from the RecyclerView-repeated ids (expected and documented above) and the
 | Version | Date | Change |
 |---|---|---|
 | v1.0 | 2026-07-31 | Initial locator repository built from full source-code analysis of commit `8cf5fac`. Supersedes all locator values previously inferred from device inspection alone; device evidence retained only as corroboration, not as primary source. |
+| v1.1 | 2026-08-05 | Correction made in Phase 15.2A (Navigation — TC-028 Documentation Reconciliation); this Change Log entry itself added in Phase 15.3A after Phase 15.3's Final Baseline Freeze verification independently caught that the Document Control "Version" field had been bumped to v1.1 without a corresponding Change Log row. §17's Reset App State dialog title corrected from the platform-namespaced `android:id/alertTitle` to the app-namespaced `com.saucelabs.mydemoapp.android:id/alertTitle` — a genuine discrepancy between the originally documented "Confirmed matching Phase 2 device evidence" claim and this project's real device (vivo I2301, Android 15), independently confirmed via a fresh `uiautomator dump` taken during Phase 15.1's runtime validation after a reproducible (3/3) automated test failure at the previously-documented locator. Message/Cancel/Confirm (`android:id/message`/`button2`/`button1`) were independently re-confirmed correct in the same dump and were not changed. No other locator, section, or element modified. |

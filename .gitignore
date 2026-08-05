@@ -1,20 +1,68 @@
+# =========================
 # Gradle
+# =========================
 .gradle/
 build/
+out/
+
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
 
+# =========================
 # IDE
+# =========================
 .idea/
+.vscode/
+
 *.iml
 *.ipr
 *.iws
-.vscode/
+.classpath
+.project
+.settings/
 
-# OS
+# =========================
+# Operating System
+# =========================
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# Generated reports (MA-FA-001 §6 — kept separate from source, excluded from version control)
-/reports/
-/test-output/
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# Reports
+# =========================
+reports/
+test-output/
+
+# =========================
+# Screenshots / Runtime Evidence
+# =========================
+screenshots/
+
+# =========================
+# Temporary Files
+# =========================
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# =========================
+# Java
+# =========================
+*.class
+hs_err_pid*
+replay_pid*
+
+# =========================
+# Local Environment
+# =========================
+.env
+.env.*

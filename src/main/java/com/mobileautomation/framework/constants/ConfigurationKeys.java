@@ -39,7 +39,10 @@ public final class ConfigurationKeys {
 
     // Execution
     public static final String EXECUTION_MODE = "execution.mode";
-    public static final String EXECUTION_NO_RESET = "execution.noReset";
+    // Added Phase 9.5I, replacing the formerly independent execution.noReset key —
+    // see config.ExecutionStrategy for why reset behavior is now driven by a
+    // single named strategy rather than a directly-set boolean.
+    public static final String EXECUTION_STRATEGY = "execution.strategy";
     public static final String EXECUTION_FULL_RESET = "execution.fullReset";
     public static final String EXECUTION_AUTO_GRANT_PERMISSIONS = "execution.autoGrantPermissions";
     public static final String EXECUTION_RETRY_COUNT = "execution.retryCount";

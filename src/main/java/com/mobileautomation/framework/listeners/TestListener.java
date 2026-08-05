@@ -17,9 +17,12 @@ import org.testng.ITestResult;
 public class TestListener implements ITestListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TestListener.class);
+    private static final String DELIMITER = "==========";
 
     @Override
     public void onTestStart(ITestResult result) {
+        LOGGER.info("{} TEST START {}", DELIMITER, DELIMITER);
+        LOGGER.info(describeTest(result));
         LOGGER.info("Test started: {}", result.getName());
         ReportProvider.createTest(result.getName());
     }
@@ -27,6 +30,7 @@ public class TestListener implements ITestListener {
     @Override
     public void onTestSuccess(ITestResult result) {
         LOGGER.info("Test passed: {}", result.getName());
+        LOGGER.info("{} TEST END {}", DELIMITER, DELIMITER);
         ReportProvider.clearCurrentTest();
     }
 
@@ -34,13 +38,21 @@ public class TestListener implements ITestListener {
     public void onTestFailure(ITestResult result) {
         LOGGER.error("Test failed: {}", result.getName(), result.getThrowable());
         ScreenshotManager.captureScreenshot(result.getName() + "_failure");
+        LOGGER.info("{} TEST END {}", DELIMITER, DELIMITER);
         ReportProvider.clearCurrentTest();
     }
 
     @Override
     public void onTestSkipped(ITestResult result) {
         LOGGER.warn("Test skipped: {}", result.getName());
+        LOGGER.info("{} TEST END {}", DELIMITER, DELIMITER);
         ReportProvider.clearCurrentTest();
+    }
+
+    /** Added Phase 9.5I — a human-readable test identifier (its {@code @Test(description=...)}) for the START banner, so a log reader sees "TC-004 — Login Outcome Verification", not just a Java method name. Falls back to the method name if no description was supplied. */
+    private String describeTest(ITestResult result) {
+        String description = result.getMethod().getDescription();
+        return (description != null && !description.isBlank()) ? description : result.getName();
     }
 
     @Override

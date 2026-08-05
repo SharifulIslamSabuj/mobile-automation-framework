@@ -1,18 +1,18 @@
 ---
 document_id: MA-TDD-001
 title: Test Data Design Specification
-version: v1.0
+version: v1.6
 status: Approved
 author: Project Owner / Repository Maintainer
 created_date: 2026-07-29
-last_updated: 2026-07-29
+last_updated: 2026-08-04
 reviewed_by: Project Owner / Repository Maintainer
 approved_by: Project Owner / Repository Maintainer
 project: Mobile Automation Framework
 project_code: MA
 aut_name: Sauce Labs Android Demo App
 aut_version: 2.2.0
-related_documents: [MA-PV-001, MA-AA-001, MA-RS-001, MA-TS-001, MA-FA-001, MA-TP-001, MA-TD-001, MA-TC-001]
+related_documents: [MA-PV-001, MA-AA-001, MA-RS-001, MA-TS-001, MA-FA-001, MA-TP-001, MA-TD-001, MA-TC-001, MA-LOC-001]
 classification: Internal
 ---
 
@@ -24,7 +24,7 @@ classification: Internal
 |---|---|
 | Document ID | MA-TDD-001 |
 | Document Name | Test Data Design Specification |
-| Version | v1.0 |
+| Version | v1.6 |
 | Status | Approved |
 | Project | Mobile Automation Framework |
 | Project Code | MA |
@@ -42,6 +42,12 @@ classification: Internal
 | v0.1 | 2026-07-29 | Project Owner | Initial draft — submitted for review; not approved; not baselined |
 | v0.2 | 2026-07-29 | Project Owner | Upgraded to Automation-Ready Enterprise structure: expanded dataset/field metadata, dummy Shipping values, Payment known/unknown breakdown, Automation Consumption Guide, Data Lifecycle, Owner Matrix, Data Source Matrix, Automation File Mapping, reserved future dataset IDs |
 | v1.0 | 2026-07-29 | Project Owner | Reviewed and approved; baselined as the official Test Data baseline for automation implementation |
+| v1.1 | 2026-08-01 | Project Owner | Phase 9.2 (Pre-Implementation Documentation Reconciliation): TD-001 (Authentication Dataset) reconciled from "Pending Manual Verification" to "Verified" using evidence from the completed Manual Verification Phase (Username `bod@example.com`, Password `10203040`, the latter corroborated by MA-LOC-001 §5). No other dataset (TD-002, TD-003), no requirement, and no application behavior claim was changed. See docs/framework/PRE_IMPLEMENTATION_DOCUMENTATION_RECONCILIATION.md for the full change record. |
+| v1.2 | 2026-08-02 | Project Owner | Phase 9.5A (Pilot Product Reconciliation): new TD-004 — Pilot Product Dataset added (§8.4), promoted from Reserved (§15). The approved Pilot Product changed from Sauce Labs Onesie ($7.99) to **Sauce Labs Backpack (violet)**, $29.99 — the newly verified product, confirmed via live Appium Inspector execution this session (Appium-driven tap, not a manual finger tap) to navigate correctly Catalog → Product Details → Add to Cart → Cart. `pilot.json` updated to match; `ProductDataFactory.pilotProduct()` unchanged (already data-driven). §6, §9, §10, §13, §14, §15, §16, §17, §18 updated for consistency. No other dataset modified. |
+| v1.3 | 2026-08-02 | Project Owner | Phase 10.1A (Authentication Module Documentation Reconciliation): §18's Combined Execution Readiness table corrected — TC-004 row changed from Blocked to Execution-ready (MA-TC-001 v1.4 resolved this via Phase 9.5G runtime evidence; TD-001 was already Ready, so test data was never TC-004's actual blocker). §19 item 3 (Login validation/error rule) Blocks column corrected — it never actually blocked TC-004 and continues to block nothing, since no negative-path Authentication test case exists. TD-001 itself unchanged — it was already Verified/Ready. No other dataset modified. |
+| v1.4 | 2026-08-02 | Project Owner | Phase 10.4A (Product Details Module Documentation Reconciliation): §6's Quantity Data classification row corrected — its justification cited FR-011 as "Out of Current Observation," which Phase 10.4A (using Phase 10.3 runtime evidence) partially resolved; reworded to state the value-change mechanics are now confirmed and to explain why no dedicated dataset is required regardless (the confirmed behavior is relative, not tied to a specific target value). §18/§19 reviewed — neither table tracks TC-011 (its blocker was never Test-Data-related; TC-011's Test Data field is Not Applicable), so neither required a change. No dataset (TD-001–TD-004) modified. |
+| v1.5 | 2026-08-04 | Project Owner | Phase 12.7A (Payment Module Documentation Reconciliation): TD-003 (Payment Card Dataset) fully resolved from "Content Blocked pending verification" to Ready, using Phase 12.3/12.4 real-device field-structure evidence and Phase 12.5/12.6 real-device value/formatting/automated-implementation evidence — §8.3 rewritten from a "What Is Known / Unknown / Candidate Checklist" structure to a confirmed four-field Reusable Dummy Dataset (Cardholder Name, Card Number, Expiration Date, Security Code), mirroring §8.2 (TD-002)'s structure. The prior candidate checklist's unconfirmed "Postal Code" field is retired — real-device evidence confirms no such field exists on the Payment screen. §9 Complete Test Data Catalog, §10 Automation Consumption Guide, §13 Data Source Matrix, §14 Automation File Mapping (now `Defined`, citing `testdata/common/payment/card.json`), §17 Coverage Summary, §18 Automation Readiness (TD-003 and TC-023 rows), §19 Pending Manual Verification Items (items 4–6 resolved), §20 Assumptions, and §21 Risks all updated to match. No other dataset (TD-001, TD-002, TD-004) modified. |
+| v1.6 | 2026-08-05 | Project Owner | Phase 15.6A (Enterprise Documentation Final Reconciliation): resolves the §14 finding from Phase 15.6's Enterprise Documentation Baseline Freeze. §14 Automation File Mapping's TD-001 and TD-002 rows corrected from `Placeholder`/`Not Yet Defined` (a stale carryover — these were never updated to reflect their actual implementation status) to `Defined`, citing the real, in-use JSON paths (`testdata/common/login/credentials.json` via `LoginDataFactory.CREDENTIALS_RESOURCE`; `testdata/common/shipping/address.json` via `ShippingDataFactory.ADDRESS_RESOURCE`), independently verified against source this session, including `TestDataEnvironmentResolver`'s resolution logic. §13 Data Source Matrix (which already correctly showed both as `Ready`) and §14 are now internally consistent. Footer corrected from "v1.1" to match the current version (now v1.6) — never previously updated since document creation. No other section, dataset, or field modified. No Java code, Page Object, locator, Test Data, or framework file modified in this phase; no tests executed. |
 
 ---
 
@@ -89,8 +95,8 @@ Test Data ID pattern: `TD-<3-digit sequence>`, independent of FR/TS/TC numbering
 | Authentication Data | Included | FR-003, FR-004; MA-TS-001 §13; MA-FA-001 §11 |
 | Shipping Address Data | Included | FR-019, FR-020; MA-TS-001 §13; MA-FA-001 §11 |
 | Payment Data | Included | FR-023; MA-TS-001 §13; MA-FA-001 §11 |
-| Product Selection Data | Excluded | TC-009 accepts any product card; no specific identity required |
-| Quantity Data | Excluded | Exact mechanics Out of Current Observation (FR-011); no specific value required |
+| Product Selection Data | Included, as of v1.2 (TD-004) | TC-009 itself still accepts any product card and needs no specific identity. However, TC-012's pilot requires a deterministic, verified target — see TD-004 (§8.4). This is a narrower, TC-012-specific inclusion, not a reversal of TC-009's general scope |
+| Quantity Data | Excluded | Value-change mechanics (step size, zero-floor behavior) confirmed via Phase 10.3 runtime evidence and no longer Out of Current Observation (MA-RS-001 FR-011, Phase 10.4A) — the confirmed behavior is relative (+1/-1 per tap from whatever value is already displayed), so no specific target value or dedicated dataset is required. Maximum bound remains Out of Current Observation |
 | Color Selection Data | Excluded | No specific color name documented in MA-AA-001 |
 | Environment Data | Excluded | Owned by Configuration Architecture (MA-FA-001 §10) |
 | Navigation Data | Excluded | Drawer item list is fixed UI structure (MA-AA-001 §6), not variable data |
@@ -126,17 +132,19 @@ Every reusable dataset in Section 8 carries the following dataset-level metadata
 
 #### 8.1.1 Positive Login Dataset
 
+**Status: Verified (Phase 9.2, 2026-08-01).** Resolved via the Manual Verification Phase, confirmed through actual AUT execution — not sourced from GitHub source code or invented/sample documentation. The Password value independently corroborates MA-LOC-001 §5's own source-level finding ("Credential Row 1 — Password... Text `10203040`... only row with a visible password value in default data"), giving this resolution two independent, mutually-consistent evidence points.
+
 | Field Name | Description | Sample Value | Allowed Type | Required / Optional | Known Validation Rule |
 |---|---|---|---|---|---|
-| Username | Login username value entered into the Username field | Pending Manual Verification | String | Required | Pending Manual Verification |
-| Password | Login password value entered into the Password field | Pending Manual Verification | String | Required | Pending Manual Verification |
+| Username | Login username value entered into the Username field | `bod@example.com` | String | Required | Pending Manual Verification (value now known; format/validation-rule confirmation remains open — no format-validation logic was found beyond the required-field check, MA-LOC-001 §18) |
+| Password | Login password value entered into the Password field | `10203040` | String | Required | Pending Manual Verification (value now known; format/validation-rule confirmation remains open, same basis as Username) |
 
 | Field Name | Source Document | Automation Ready | Manual Verification Needed | Notes |
 |---|---|---|---|---|
-| Username | MA-AA-001 (sample credentials observed on-screen, text not transcribed) | Pending | Yes — read from Login screen | Do not fabricate; AUT displays the real value on-screen |
-| Password | MA-AA-001 (sample credentials observed on-screen, text not transcribed) | Pending | Yes — read from Login screen | Do not fabricate; AUT displays the real value on-screen |
+| Username | Manual Verification Phase (verified through actual AUT execution); MA-AA-001 (sample credentials' on-screen presence originally observed) | Ready | No — verified | Value confirmed by direct on-screen read during the Manual Verification Phase, not fabricated |
+| Password | Manual Verification Phase (verified through actual AUT execution); corroborated by MA-LOC-001 §5 (`password1TV` = "10203040", source-level finding) | Ready | No — verified | Two independent evidence sources agree on this value |
 
-**Automation Consumption:** TC-003 Steps 1–2 (entry), TC-004 Step 1 (resubmission). Automation Readiness for this sub-dataset: Pending — resolved via the manual verification pass already committed to in MA-TS-001 §8, expected to require only a direct on-screen read (MA-AA-001 confirms the value is displayed, not hidden).
+**Automation Consumption:** TC-003 Steps 1–2 (entry), TC-004 Step 1 (resubmission). Automation Readiness for this sub-dataset: **Ready** — both values verified via the Manual Verification Phase (previously: Pending, resolved via the manual verification pass committed to in MA-TS-001 §8, as anticipated).
 
 #### 8.1.2 Negative Login Dataset
 
@@ -199,62 +207,94 @@ Values below are fictitious QA test data constructed for this document. They do 
 | Field | Value |
 |---|---|
 | Dataset ID | TD-003 |
-| Purpose | Supplies card entry value(s) for Payment Card Data Entry |
+| Purpose | Supplies values for the four confirmed Payment Card fields |
 | Owner | Project Owner / Repository Maintainer |
-| Status | Approved (dataset record); Content Blocked pending verification |
+| Status | Approved |
 | Priority | Must (inherited from FR-023) |
-| Reusable | Yes — single dataset for all Payment-stage consumers, once resolved |
+| Reusable | Yes — single dataset for all Payment-stage consumers |
 | Scope | Checkout — Payment (MA-RS-001 §6.7) |
-| Data Source | MA-AA-001 (generic "card entry screen" observation only) |
+| Data Source | Phase 12.3/12.4 (field structure, real-device runtime investigation) + Phase 12.5 (values and formatting behavior, real-device runtime investigation) + this document (fictitious dummy values) |
 | Maintenance Owner | Project Owner / Repository Maintainer |
-| Version | v1.0 |
+| Version | v1.1 |
 | Review Status | Reviewed |
-| Approval Status | Approved (as a Pending-structure record) |
+| Approval Status | Approved |
 
 #### 8.3.1 What Is Known
 
-- A "Payment Method" screen exists and follows the Shipping Address screen (MA-AA-001, MA-RS-001 FR-022).
-- The screen displays "Credit/Debit card information" and a generic "card entry screen" (MA-AA-001).
-- Card entry field(s) accept input in principle (MA-RS-001 FR-023 acceptance criteria).
-- A "Continue" action navigates from this screen to Review Order (MA-RS-001 FR-024).
+- The Payment Method screen displays exactly **four** card entry fields — Cardholder Name, Card Number, Expiration Date, Security Code — confirmed via Phase 12.3's real-device UI hierarchy dump and independently re-confirmed via Phase 12.5's direct field-by-field interaction. No fifth field (e.g. a separate Postal Code) exists on this screen — see §8.3.3's correction note.
+- Card Number and Expiration Date are custom widgets (`CreditCardNumberEditText`/`CreditCardDateEditText` per MA-LOC-001 §11, source-decompiled) that **auto-format** entered digits as you type: Card Number groups digits in fours separated by spaces (e.g. `4111 1111 1111 1111`); Expiration Date inserts a slash after the second digit (e.g. `12/25`). `getText()` returns the formatted value, not the raw input (Phase 12.5, confirmed).
+- Cardholder Name and Security Code are plain `EditText` fields with no reformatting; Security Code displays unmasked (no dots/asterisks) — confirmed Phase 12.5.
+- All four fields are required: each shows a "Value looks invalid." validation message (border + icon, for all four; the text label itself was observed for Cardholder Name, Expiration Date, and Security Code but did not appear for Card Number in two attempts — an unexplained, non-blocking asymmetry, not further investigated) when empty and blurred — confirmed Phase 12.5.
+- The Billing-Same-As-Shipping checkbox is checked by default — confirmed Phase 12.3/12.5.
+- A "Review Order" action exists on this screen (`paymentBtn`, third reuse of that resource-id per MA-LOC-001 §10/§11) — its enabled state does not depend on form validity (observed enabled even with all fields empty, Phase 12.5); its navigation behavior when tapped remains untested (out of scope through Phase 12.6).
 
-#### 8.3.2 What Is Unknown
+#### 8.3.2 What Remains Unknown
 
-- The exact number of card entry fields on the screen.
-- The identity/labels of each field (e.g., whether card number, expiry, CVV, and cardholder name are separate fields or combined).
-- Any format or validation rule applied to card input (length, numeric-only, Luhn check, expiry format).
-- Whether the AUT performs any real validation at all, given it is a demo application.
+- Whether the AUT performs any server-side/business validation beyond the client-side "Value looks invalid." format check (e.g. a Luhn check on Card Number) — no such rule was triggered or observed.
+- The exact cause of Card Number's error-text-label asymmetry (§8.3.1).
+- Review Order's actual navigation/validation behavior when tapped (deferred to a future Test Case; not TC-023's scope).
 
-#### 8.3.3 What Must Be Manually Verified
+#### 8.3.3 Reusable Dummy Dataset
 
-The actual field structure of the Payment Method screen must be inspected via Appium Inspector page source during the manual verification pass already committed to in MA-TS-001 §8. Until that inspection occurs, this dataset cannot be finalized into named, confirmed fields.
+Values below are fictitious QA test data (the Card Number is the globally standard industry test number, `4111 1111 1111 1111`). They do not correspond to any real person, business, or payment instrument, and must never be replaced with production or personal data.
 
-#### 8.3.4 Candidate Field Structure (NOT CONFIRMED — Verification Checklist Only)
+| Field Name | Description | Sample Value (raw entry) | Expected Value (AUT auto-formatted) | Allowed Type | Required / Optional | Known Validation Rule |
+|---|---|---|---|---|---|---|
+| Cardholder Name | Name on card | Rahim Test Uddin (reuse of TD-002 Full Name persona) | Not applicable — no reformatting | String | Required | "Value looks invalid." on empty + blur (Phase 12.5) |
+| Card Number | Card number | 4111111111111111 | 4111 1111 1111 1111 | String / Numeric | Required | "Value looks invalid." border/icon on empty + blur; text label not observed (Phase 12.5) |
+| Expiration Date | Card expiration (MM/YY) | 1225 | 12/25 | String / Numeric | Required | "Value looks invalid." on empty + blur (Phase 12.5) |
+| Security Code | Card security code (CVV) | 456 | Not applicable — no reformatting | String / Numeric | Required | "Value looks invalid." on empty + blur (Phase 12.5) |
 
-> The fields below are industry-typical for payment forms in general. They are **NOT confirmed** to exist in this AUT. They are provided only as a starting checklist for the manual verification pass — do not treat any row as documented application behavior.
+| Field Name | Source Document | Automation Ready | Manual Verification Needed | Notes |
+|---|---|---|---|---|
+| Cardholder Name | Phase 12.3/12.5 (field confirmed); value is fictitious dummy data | Ready | No | Plain `EditText`; no reformatting |
+| Card Number | Phase 12.3/12.5 (field and auto-formatting confirmed) | Ready | No | Custom widget; assert against the formatted "Expected Value", never the raw entry |
+| Expiration Date | Phase 12.3/12.5 (field and auto-formatting confirmed) | Ready | No | Custom widget; assert against the formatted "Expected Value", never the raw entry |
+| Security Code | Phase 12.3/12.5 (field confirmed) | Ready | No | Plain `EditText`; displays unmasked |
 
-| Candidate Field (Unconfirmed) | Illustrative Sandbox Value (Unconfirmed Applicability) | Basis |
-|---|---|---|
-| Card Holder Name | Rahim Test Uddin (reuse of TD-002 Full Name persona, if a name field exists) | Not observed — candidate only |
-| Card Number | 4111 1111 1111 1111 (globally standard industry test-card number; not confirmed accepted by this AUT) | Not observed — candidate only |
-| Expiry Date | 12/2030 (illustrative future date) | Not observed — candidate only |
-| CVV | 123 (illustrative) | Not observed — candidate only |
-| Postal Code | 1230 (reuse of TD-002 Zip Code, if a field exists) | Not observed — candidate only |
+**Correction (Phase 12.7A):** the prior candidate checklist (v1.0 of this section) included an unconfirmed "Postal Code" field, reusing TD-002's Zip Code "if a field exists." Phase 12.3/12.5's real-device evidence confirms no such field exists on the Payment screen — the field count is exactly four, not five. This candidate is retired, not carried forward.
+
+**Automation Consumption:** TC-023 Steps 1–4 (direct entry, in field order above) plus Step 5 (Billing checkbox default-state context check). TC-022 uses this screen as display-verification context only (no field-level data consumption). Automation Readiness for this dataset: Ready — every field has a usable, confirmed sample value and a confirmed expected (post-formatting, where applicable) assertion value.
+
+### 8.4 TD-004 — Pilot Product Dataset
 
 | Field | Value |
 |---|---|
-| Automation Ready | Blocked |
-| Manual Verification Needed | Yes — full field structure, then values and validation rules |
-| Notes | No field name above is asserted as confirmed; this table exists solely to accelerate the manual verification pass, per the explicit "dummy/sandbox values are allowed" permission for this upgrade, while still complying with "do not invent confirmed field names" |
+| Dataset ID | TD-004 |
+| Purpose | Supplies a single, deterministic, verified product identity for TC-012's Pilot Automation — Product Selection, Product Details verification, and Add to Cart |
+| Owner | Project Owner / Repository Maintainer |
+| Status | Approved |
+| Priority | Must (inherited from FR-012) |
+| Reusable | Yes, architecturally — any future Test Case needing a deterministic catalog item may reference this dataset. TC-012 is its only current consumer |
+| Scope | Product Details / Add to Cart (MA-RS-001 §6.4) — Pilot Automation only |
+| Data Source | Verified Manual Execution Evidence, 2026-08-02 (live Appium Inspector capture, this session — Appium-driven tap, not a manual finger tap) |
+| Maintenance Owner | Project Owner / Repository Maintainer |
+| Version | v1.0 |
+| Review Status | Reviewed |
+| Approval Status | Approved |
 
-**Automation Consumption:** TC-023 Step 1 cannot be automated against a named field yet; TC-022, TC-024, TC-025 surround this stage contextually. Automation Readiness for this dataset: Blocked.
+#### 8.4.1 Approved Pilot Product
+
+**Status: Verified (Phase 9.5A, 2026-08-02).** Supersedes the previous Pilot Product (Sauce Labs Onesie, $7.99, approved Phase 9.3) per explicit direction — the Onesie is no longer the approved Pilot dataset.
+
+| Field Name | Description | Sample Value | Allowed Type | Required / Optional | Known Validation Rule |
+|---|---|---|---|---|---|
+| Product Name | Exact on-screen catalog product name (`titleTV`), used for exact-text product-card matching by the existing, unmodified `ProductsPage.selectProductByName()` | `Sauce Labs Backpack (violet)` | String | Required | Not Applicable — read-only display field, no input validation |
+| Price | Exact on-screen catalog/details price (`priceTV`), used for Product Card and Product Details verification | `29.99` | BigDecimal | Required | Not Applicable — read-only display field |
+
+| Field Name | Source Document | Automation Ready | Manual Verification Needed | Notes |
+|---|---|---|---|---|
+| Product Name | Verified Manual Execution Evidence, 2026-08-02 (this session) — confirmed via live Appium Inspector capture across Catalog (`titleTV`), Product Details (`productTV`), and Cart (`titleTV`) screens, all reading "Sauce Labs Backpack (violet)" | Ready | No — verified | The app displays name and color as a single combined string, not separate fields; `ProductItem` has no dedicated variant field, so "Violet" is encoded within `name`, matching the AUT's own display convention |
+| Price | Same evidence — `priceTV` read as "$ 29.99" on both Catalog and Product Details, `totalPriceTV` read as "$ 29.99" on Cart (single item, no shipping added yet) | Ready | No — verified | — |
+
+**Automation Consumption:** TC-012 Steps 1–2 (load + locate), Steps 3–4 and 7–8 (Product Card / Product Details name+price verification), Step 14 (Cart content verification). Consumed via `ProductDataFactory.pilotProduct()` → `product/pilot.json`; automation must not hardcode these values. Automation Readiness for this dataset: **Ready**.
 
 ## 9. Complete Test Data Catalog
 
 | Test Data ID | Field Name | Sample Value | Automation Ready | Manual Verification Needed |
 |---|---|---|---|---|
-| TD-001 | Username | Pending Manual Verification | Pending | Yes |
-| TD-001 | Password | Pending Manual Verification | Pending | Yes |
+| TD-001 | Username | `bod@example.com` | Ready | No — Verified (Manual Verification Phase) |
+| TD-001 | Password | `10203040` | Ready | No — Verified (Manual Verification Phase) |
 | TD-002 | Full Name | Rahim Test Uddin | Ready | No |
 | TD-002 | Address Line 1 | House 45, Road 7 | Ready | No |
 | TD-002 | Address Line 2 | Sector 10, Uttara | Ready | No |
@@ -262,7 +302,12 @@ The actual field structure of the Payment Method screen must be inspected via Ap
 | TD-002 | State/Region | Dhaka Division | Ready | No |
 | TD-002 | Zip Code | 1230 | Ready | No |
 | TD-002 | Country | Bangladesh | Ready | No |
-| TD-003 | Card Entry Field(s) — structure not confirmed | Pending Manual Verification | Blocked | Yes |
+| TD-003 | Cardholder Name | Rahim Test Uddin | Ready | No |
+| TD-003 | Card Number | 4111111111111111 (raw entry) / 4111 1111 1111 1111 (AUT-formatted) | Ready | No |
+| TD-003 | Expiration Date | 1225 (raw entry) / 12/25 (AUT-formatted) | Ready | No |
+| TD-003 | Security Code | 456 | Ready | No |
+| TD-004 | Product Name | `Sauce Labs Backpack (violet)` | Ready | No — Verified (2026-08-02 session evidence) |
+| TD-004 | Price | `29.99` | Ready | No — Verified (2026-08-02 session evidence) |
 
 ## 10. Automation Consumption Guide
 
@@ -275,8 +320,10 @@ This section maps every consuming Test Case to its dataset and fields, so an Aut
 | TC-019 | TD-002 | Shipping Address (all 7 fields, display only) | Context (verification of field presence, no entry) |
 | TC-020 | TD-002 | Full Name, Address Line 1, Address Line 2, City, State/Region, Zip Code, Country | Direct Entry |
 | TC-021 | TD-002 | Shipping Address (populated state) | Context (precondition only) |
-| TC-023 | TD-003 | Card Entry Field(s) — Pending | Direct Entry (Blocked until structure confirmed) |
+| TC-022 | TD-003 | Payment Card fields (display only, no entry) | Context (verification of field presence, no entry) |
+| TC-023 | TD-003 | Cardholder Name, Card Number, Expiration Date, Security Code | Direct Entry |
 | TC-025 | TD-002 | Shipping Address (all 7 fields) | Comparison (consistency check against Review Order summary) |
+| TC-012 | TD-004 | Product Name, Price | Direct Load (`ProductDataFactory.pilotProduct()`) + Verification (Product Card, Product Details, Cart) |
 
 ## 11. Data Lifecycle
 
@@ -296,6 +343,7 @@ This section maps every consuming Test Case to its dataset and fields, so an Aut
 | TD-001 | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer |
 | TD-002 | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer |
 | TD-003 | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer |
+| TD-004 | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer | Project Owner / Repository Maintainer |
 
 Consistent with the single-contributor constraint in MA-PV-001 §19 (C-6), these roles are held by the same individual across gates; they remain conceptually distinct for governance traceability, matching the pattern already used in MA-TP-001 §17.
 
@@ -303,27 +351,28 @@ Consistent with the single-contributor constraint in MA-PV-001 §19 (C-6), these
 
 | Dataset | Data Source | Manual Verification Needed | Automation Ready |
 |---|---|---|---|
-| TD-001 | MA-AA-001 (Login screen observation) | Yes — Username/Password values | Pending |
+| TD-001 | Manual Verification Phase (verified through actual AUT execution); MA-AA-001 (on-screen presence originally observed); corroborated by MA-LOC-001 §5 for the Password value | No — Verified | Ready |
 | TD-002 | MA-AA-001 (field observation) + this document (fictitious dummy values) | No (values); Optional (validation rules) | Ready |
-| TD-003 | MA-AA-001 (generic card entry screen observation) | Yes — full field structure, then values and validation rules | Blocked |
+| TD-003 | Phase 12.3/12.4 (field structure, real-device runtime investigation) + Phase 12.5 (values/formatting, real-device runtime investigation) + this document (fictitious dummy values) | No — Verified (Phase 12.3–12.6) | Ready |
+| TD-004 | Verified Manual Execution Evidence, 2026-08-02 (live Appium Inspector capture, this session) | No — Verified | Ready |
 
 ## 14. Automation File Mapping
 
-The fields below are reserved mapping placeholders for a future automation implementation phase. No implementation is defined or implied here.
+**Corrected Phase 15.6A**: TD-001 and TD-002 were still shown below as reserved *future* placeholders despite being fully implemented and in active use since early in this project — a stale carryover this table was never updated to reflect, independently discovered and confirmed during Phase 15.6's Enterprise Documentation Baseline Freeze, then verified directly against source (`LoginDataFactory.CREDENTIALS_RESOURCE`, `ShippingDataFactory.ADDRESS_RESOURCE`, and `TestDataEnvironmentResolver`'s resolution logic) during this reconciliation. The fields for any dataset still genuinely unimplemented remain reserved placeholders for a future automation implementation phase — no implementation is defined or implied for those.
 
 | Dataset | Future JSON File | Future YAML File | Future Excel Sheet | Future CSV | Future Secrets Store | Future Env Variable | Status |
 |---|---|---|---|---|---|---|---|
-| TD-001 | Placeholder | Placeholder | Placeholder | Placeholder | Placeholder (recommended for credential values) | Placeholder | Not Yet Defined |
-| TD-002 | Placeholder | Placeholder | Placeholder | Placeholder | Not Applicable | Placeholder | Not Yet Defined |
-| TD-003 | Placeholder | Placeholder | Placeholder | Placeholder | Placeholder (recommended for card values, if confirmed) | Placeholder | Not Yet Defined |
+| TD-001 | `src/test/resources/testdata/common/login/credentials.json` (real, in use — `LoginDataFactory.CREDENTIALS_RESOURCE`, resolved via `TestDataEnvironmentResolver`) | Not Applicable | Not Applicable | Not Applicable | Not implemented — credential values remain in plaintext JSON, consistent with this project's public-portfolio/no-real-PII scope (MA-PV-001 §19) | Not Applicable | Defined |
+| TD-002 | `src/test/resources/testdata/common/shipping/address.json` (real, in use — `ShippingDataFactory.ADDRESS_RESOURCE`, resolved via `TestDataEnvironmentResolver`) | Not Applicable | Not Applicable | Not Applicable | Not Applicable | Not Applicable | Defined |
+| TD-003 | `src/test/resources/testdata/common/payment/card.json` (real, in use) | Not Applicable | Not Applicable | Not Applicable | Not Applicable | Not Applicable | Defined |
+| TD-004 | `src/test/resources/testdata/common/product/pilot.json` (real, in use) | Not Applicable | Not Applicable | Not Applicable | Not Applicable | Not Applicable | Defined |
 
 ## 15. Future Scalability — Reserved Dataset IDs
 
-The following IDs are reserved for future datasets and are intentionally left unpopulated. No category or content is implied by reserving a number.
+The following IDs are reserved for future datasets and are intentionally left unpopulated. No category or content is implied by reserving a number. **TD-004 was promoted out of this reserved range in v1.2** — see §8.4.
 
 | Reserved ID | Status |
 |---|---|
-| TD-004 | Reserved — Not Yet Defined |
 | TD-005 | Reserved — Not Yet Defined |
 | TD-006 | Reserved — Not Yet Defined |
 | TD-007 | Reserved — Not Yet Defined |
@@ -346,7 +395,7 @@ The following IDs are reserved for future datasets and are intentionally left un
 | FR-009 | TS-009 | TC-009 | Not Applicable |
 | FR-010 | TS-010 | TC-010 | Not Applicable |
 | FR-011 | TS-011 | TC-011 | Not Applicable |
-| FR-012 | TS-012 | TC-012 | Not Applicable |
+| FR-012 | TS-012 | TC-012 | TD-004 |
 | FR-013 | TS-013 | TC-013 | Not Applicable |
 | FR-014 | TS-014 | TC-014 | Not Applicable |
 | FR-015 | TS-015 | TC-015 | Not Applicable |
@@ -372,51 +421,54 @@ The following IDs are reserved for future datasets and are intentionally left un
 
 | Coverage Dimension | Result |
 |---|---|
-| Positive Data | 3 datasets (TD-001, TD-002, TD-003) |
+| Positive Data | 4 datasets (TD-001, TD-002, TD-003, TD-004) |
 | Negative Data | 6 variants evaluated, all Out of Scope (§8.1.2) |
 | Boundary Data | None — excluded (Section 6) |
 | Optional Data | None confirmed — Address Line 2 optionality flagged Pending (§8.2) |
 | Dynamic Data | None — dynamic elements are observed, not supplied as input |
-| Reusable Data | 3 of 3 active datasets are reusable across multiple Test Cases |
+| Reusable Data | 4 of 4 active datasets are architecturally reusable; TD-004 currently has a single consumer (TC-012) |
 | Unique Data | None required — no uniqueness constraint documented |
-| Pending Verification Data | 2 of 3 datasets (TD-001, TD-003) still contain Pending items |
+| Pending Verification Data | 0 of 4 datasets contain Pending items — TD-001 resolved 2026-08-01, TD-004 added and Verified 2026-08-02, TD-003 resolved 2026-08-04 (Phase 12.7A, using Phase 12.3–12.6 evidence) |
 
 ## 18. Automation Readiness
 
 | Dataset | Automation Readiness | Rationale |
 |---|---|---|
-| TD-001 | Pending | Field structure confirmed; both values pending an on-screen read |
+| TD-001 | Ready | Field structure confirmed; both values verified via the Manual Verification Phase (§8.1.1) |
 | TD-002 | Ready | All 7 fields have usable dummy values; no confirmed blocking validation rule |
-| TD-003 | Blocked | Field structure itself is unconfirmed; cannot be automated until inspected |
+| TD-003 | Ready | Field structure, values, and formatting behavior all confirmed via Phase 12.3–12.6 real-device evidence (§8.3) |
+| TD-004 | Ready | Product Name and Price both verified via live Appium Inspector execution, 2026-08-02 (§8.4.1) |
 
 | Test Case | MA-TC-001 Automation Status | Test Data Status | Combined Execution Readiness |
 |---|---|---|---|
-| TC-003 | Ready | TD-001 — Pending | Not execution-ready until TD-001 resolved |
-| TC-004 | Blocked | TD-001 — Pending | Not execution-ready (blocked on two fronts) |
+| TC-003 | Ready | TD-001 — Ready | Execution-ready |
+| TC-004 | Ready | TD-001 — Ready | Execution-ready — resolved Phase 10.1A/MA-TC-001 v1.4 using Phase 9.5G runtime evidence |
+| TC-012 | Ready | TD-004 — Ready | Execution-ready |
 | TC-019 | Ready | TD-002 — Ready | Execution-ready |
 | TC-020 | Ready | TD-002 — Ready | Execution-ready |
 | TC-021 | Ready | TD-002 — Ready | Execution-ready |
-| TC-023 | Blocked | TD-003 — Blocked | Not execution-ready (blocked on two fronts) |
+| TC-022 | Ready | TD-003 — Ready (context only) | Execution-ready |
+| TC-023 | Ready | TD-003 — Ready | Execution-ready — resolved Phase 12.7A/MA-TC-001 v1.9 using Phase 12.5/12.6 real-device evidence |
 | TC-025 | Ready | TD-002 — Ready | Execution-ready |
 
 ## 19. Pending Manual Verification Items
 
 | # | Item | Dataset | Blocks |
 |---|---|---|---|
-| 1 | Username value | TD-001 | TC-003, TC-004 |
-| 2 | Password value | TD-001 | TC-003, TC-004 |
-| 3 | Login validation/error rule (if any) | TD-001 | TC-004 (already Blocked in MA-TC-001) |
-| 4 | Payment card field structure (count and identity of fields) | TD-003 | TC-023 (already Blocked in MA-TC-001) |
-| 5 | Payment card field value(s) | TD-003 | TC-023 (already Blocked in MA-TC-001) |
-| 6 | Payment card validation rule (format, e.g., Luhn) if any | TD-003 | TC-023 (already Blocked in MA-TC-001) |
+| 1 | ~~Username value~~ — **RESOLVED 2026-08-01** (Manual Verification Phase; `bod@example.com`, see §8.1.1) | TD-001 | None (was TC-003, TC-004) |
+| 2 | ~~Password value~~ — **RESOLVED 2026-08-01** (Manual Verification Phase; `10203040`, corroborated by MA-LOC-001 §5, see §8.1.1) | TD-001 | None (was TC-003, TC-004) |
+| 3 | Login validation/error rule (if any) | TD-001 | None currently — TC-004 resolved Phase 10.1A (MA-TC-001 v1.4) on other evidence; this item was never TC-004's actual blocker and remains open only as informational (no negative-path Authentication test case exists to be blocked by it — MA-TDD-001 §8.1.2) |
+| 4 | ~~Payment card field structure (count and identity of fields)~~ — **RESOLVED 2026-08-04** (Phase 12.3/12.4 real-device runtime investigation and automated implementation; exactly four fields — Cardholder Name, Card Number, Expiration Date, Security Code — see §8.3.1) | TD-003 | None (was TC-023) |
+| 5 | ~~Payment card field value(s)~~ — **RESOLVED 2026-08-04** (Phase 12.5 real-device runtime investigation; see §8.3.3) | TD-003 | None (was TC-023) |
+| 6 | Payment card validation rule (format, e.g., Luhn) if any | TD-003 | None currently — a client-side "Value looks invalid." format check was observed (Phase 12.5, §8.3.1), but no server-side/business rule (e.g. Luhn) was triggered or tested; this remains open only as informational, since TC-023 (now Ready) never depended on it |
 | 7 | Address Line 2 required-vs-optional status | TD-002 | None currently — informational only |
 | 8 | Zip Code and Country format/type (free text vs. dropdown/numeric) | TD-002 | None currently — informational only |
 
 ## 20. Assumptions
 
-- The AUT's Login screen continues to display sample credentials directly on-screen at the time of manual verification (MA-AA-001).
+- ~~The AUT's Login screen continues to display sample credentials directly on-screen at the time of manual verification (MA-AA-001).~~ **Confirmed true 2026-08-01** — the Manual Verification Phase read the value directly from the Login screen, as this assumption anticipated (§8.1.1).
 - No Shipping Address field enforces a format constraint beyond accepting text input (MA-RS-001 FR-020), so the dummy values in Section 8.2 remain valid inputs.
-- The Payment Method screen's exact field structure will be discoverable via Appium Inspector during the manual verification pass committed to in MA-TS-001 §8.
+- ~~The Payment Method screen's exact field structure will be discoverable via Appium Inspector during the manual verification pass committed to in MA-TS-001 §8.~~ **Confirmed true 2026-08-04** — Phase 12.3's real-device UI hierarchy dump (the functional equivalent of an Appium Inspector capture) discovered the field structure exactly as this assumption anticipated (§8.3.1).
 - Dummy/placeholder/sandbox values introduced in this document do not themselves alter or exercise any AUT business rule.
 - A single contributor owns and maintains this dataset, consistent with MA-PV-001 §19 (C-6).
 
@@ -424,11 +476,13 @@ The following IDs are reserved for future datasets and are intentionally left un
 
 | Risk | Note |
 |---|---|
-| TC-003 is Automation-Status "Ready" in MA-TC-001 but not execution-ready here | Data unavailability (TD-001) was not visible at the MA-TC-001 layer; flagged in Section 18 to prevent a false-positive automation start |
-| TD-003 requires structural discovery, not just value entry | Higher effort than TD-001/TD-002; may reveal additional fields requiring their own validation rules |
+~~TC-003 is Automation-Status "Ready" in MA-TC-001 but not execution-ready here~~ — **RESOLVED 2026-08-01** | TD-001 is now Ready (§8.1.1, §18); TC-003 is execution-ready. Retained here, struck through, for historical traceability rather than deleted outright. |
+| ~~TD-003 requires structural discovery, not just value entry~~ — **Resolved Phase 12.7A** | Structural discovery completed via Phase 12.3/12.4 real-device evidence; no additional fields were revealed beyond the four documented in §8.3 |
 | TD-002 dummy values assume no format validation exists | If a manual pass finds format validation, this dataset must be revised before automation |
-| Candidate Payment fields (§8.3.4) could be mistaken for confirmed fields if this document is skimmed | Mitigated by explicit "NOT CONFIRMED" labeling and a dedicated caution note |
+| ~~Candidate Payment fields could be mistaken for confirmed fields if this document is skimmed~~ — **Resolved Phase 12.7A** | The unconfirmed candidate checklist (formerly §8.3.4) was retired and replaced with a confirmed Reusable Dummy Dataset (§8.3.3), mirroring TD-002's structure — no candidate/unconfirmed content remains in §8.3 |
 | Scope creep into unneeded data categories | Mitigated by Section 6, which justifies every exclusion |
+| TD-004 is a single, specific catalog item (Sauce Labs Backpack, violet) | If this exact product is ever removed or renamed in the AUT's catalog, TC-012's pilot breaks even though the framework itself is unaffected — no fallback/alternate pilot product is currently defined |
+| Pilot Product changed once already (Onesie → Backpack violet, v1.2) | Any future change should follow the same evidence-first process: update `pilot.json`, then this document, in a single reconciliation pass — not independently |
 
 ## 22. Approval
 
@@ -438,7 +492,8 @@ The following IDs are reserved for future datasets and are intentionally left un
 | Reviewed By | Project Owner / Repository Maintainer | Approved | 2026-07-29 |
 | Approved By | Project Owner / Repository Maintainer | Approved | 2026-07-29 |
 | Document Status | Approved — Baselined — Ready for Automation | — | 2026-07-29 |
+| v1.1 Reconciliation | Project Owner / Repository Maintainer | Approved | 2026-08-01 |
 
 ---
 
-**End of Document — MA-TDD-001, v1.0**
+**End of Document — MA-TDD-001, v1.6**

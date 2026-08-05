@@ -1,0 +1,8 @@
+{
+  "cardholderName": "Rahim Test Uddin",
+  "cardNumber": "4111111111111111",
+  "expectedCardNumber": "4111 1111 1111 1111",
+  "expirationDate": "1225",
+  "expectedExpirationDate": "12/25",
+  "securityCode": "456"
+}
