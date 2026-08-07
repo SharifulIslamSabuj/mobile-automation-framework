@@ -147,7 +147,12 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 600
           script: |
-            set -euo pipefail
+            # reactivecircus/android-emulator-runner executes this script via /bin/sh (dash on
+            # this runner), not bash — `pipefail` is a bash/ksh extension dash does not support
+            # (confirmed: Phase 17.4A root cause report, run 31167873866). `-eu` is POSIX and
+            # dash-compatible, and is sufficient here since this script contains no `cmd1 | cmd2`
+            # pipeline whose non-final command's failure would need `pipefail` to be caught.
+            set -eu
 
             echo "Starting Appium server (v${APPIUM_SERVER_VERSION})..."
             appium server --log-level info --relaxed-security \
