@@ -18,11 +18,17 @@ public final class ProductDetailsLocators {
     public static final By PRODUCT_IMAGE = AppiumBy.accessibilityId("Displays selected product");
     public static final By PRODUCT_NAME = By.id(PACKAGE + "productTV");
     public static final By PRODUCT_PRICE = By.id(PACKAGE + "priceTV");
-    public static final By COLOR_LIST = AppiumBy.accessibilityId("Displays available colors of selected product");
-    public static final By DECREASE_QUANTITY_BUTTON = AppiumBy.accessibilityId("Decrease item quantity");
+    /** Raw accessibility id — exposed separately (same reason as {@link #PRODUCT_HIGHLIGHTS_RESOURCE_ID}) because {@code ScrollUtility#scrollToAccessibilityId(String)} needs the raw id, not a {@link By}. Added Phase 17.6A: on some viewports (confirmed via CI emulator evidence) this element renders below the initially-visible screen area. */
+    public static final String COLOR_LIST_ACCESSIBILITY_ID = "Displays available colors of selected product";
+    public static final By COLOR_LIST = AppiumBy.accessibilityId(COLOR_LIST_ACCESSIBILITY_ID);
+    /** Raw accessibility id — same reason as {@link #COLOR_LIST_ACCESSIBILITY_ID} above. Added Phase 17.6A. */
+    public static final String DECREASE_QUANTITY_ACCESSIBILITY_ID = "Decrease item quantity";
+    public static final By DECREASE_QUANTITY_BUTTON = AppiumBy.accessibilityId(DECREASE_QUANTITY_ACCESSIBILITY_ID);
     public static final By QUANTITY_VALUE = By.id(PACKAGE + "noTV");
     public static final By INCREASE_QUANTITY_BUTTON = AppiumBy.accessibilityId("Increase item quantity");
-    public static final By ADD_TO_CART_BUTTON = AppiumBy.accessibilityId("Tap to add product to cart");
+    /** Raw accessibility id — same reason as {@link #COLOR_LIST_ACCESSIBILITY_ID} above. Added Phase 17.6A. */
+    public static final String ADD_TO_CART_BUTTON_ACCESSIBILITY_ID = "Tap to add product to cart";
+    public static final By ADD_TO_CART_BUTTON = AppiumBy.accessibilityId(ADD_TO_CART_BUTTON_ACCESSIBILITY_ID);
 
     /** Raw resource-id string for the Product Highlights label — exposed separately (not just wrapped in {@link #PRODUCT_HIGHLIGHTS_LABEL}) because {@code ScrollUtility#scrollToResourceId(String)} needs the raw id, not a {@link By}. Added Phase 10.3 for TC-013. */
     public static final String PRODUCT_HIGHLIGHTS_RESOURCE_ID = PACKAGE + "productHeightLightsTV"; // sic — verbatim from source, MA-LOC-001 §8

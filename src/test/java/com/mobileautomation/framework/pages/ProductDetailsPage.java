@@ -49,8 +49,16 @@ public class ProductDetailsPage extends BasePage {
         return elementActions.isDisplayed(ProductDetailsLocators.PRODUCT_IMAGE);
     }
 
-    /** Taps the Add to Cart button. */
+    /**
+     * Taps the Add to Cart button. Scrolls it into view first — Phase 17.6A
+     * found this control renders below the initially-visible screen area on
+     * some viewports (CI emulator evidence), the same reason
+     * {@link #scrollToHighlights()} already scrolls on this screen;
+     * {@code scrollToAccessibilityId} is a no-op when the target is already
+     * visible, so this does not change real-device behavior.
+     */
     public void addToCart() {
+        ScrollUtility.scrollToAccessibilityId(ProductDetailsLocators.ADD_TO_CART_BUTTON_ACCESSIBILITY_ID);
         elementActions.click(ProductDetailsLocators.ADD_TO_CART_BUTTON);
     }
 
@@ -64,8 +72,13 @@ public class ProductDetailsPage extends BasePage {
         return elementActions.isEnabled(ProductDetailsLocators.ADD_TO_CART_BUTTON);
     }
 
-    /** @return whether the Quantity Selector's three elements (decrease control, value, increase control) are all displayed. */
+    /**
+     * @return whether the Quantity Selector's three elements (decrease control, value, increase control) are all displayed.
+     * Scrolls the decrease control into view first — see {@link #addToCart()} for why (Phase 17.6A);
+     * the value/increase controls sit in the same row so no separate scroll is needed for them.
+     */
     public boolean isQuantitySelectorDisplayed() {
+        ScrollUtility.scrollToAccessibilityId(ProductDetailsLocators.DECREASE_QUANTITY_ACCESSIBILITY_ID);
         return elementActions.isDisplayed(ProductDetailsLocators.DECREASE_QUANTITY_BUTTON)
                 && elementActions.isDisplayed(ProductDetailsLocators.QUANTITY_VALUE)
                 && elementActions.isDisplayed(ProductDetailsLocators.INCREASE_QUANTITY_BUTTON);
@@ -77,8 +90,12 @@ public class ProductDetailsPage extends BasePage {
                 && elementActions.isEnabled(ProductDetailsLocators.INCREASE_QUANTITY_BUTTON);
     }
 
-    /** @return whether the Color Selector is displayed. */
+    /**
+     * @return whether the Color Selector is displayed. Scrolls it into view
+     * first — see {@link #addToCart()} for why (Phase 17.6A).
+     */
     public boolean isColorSelectorDisplayed() {
+        ScrollUtility.scrollToAccessibilityId(ProductDetailsLocators.COLOR_LIST_ACCESSIBILITY_ID);
         return elementActions.isDisplayed(ProductDetailsLocators.COLOR_LIST);
     }
 
