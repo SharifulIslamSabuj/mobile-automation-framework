@@ -219,13 +219,45 @@ Run 11
 
 ## 9. CI Verification Result
 
-*(To be completed after the next real run.)*
+**Confirmed — [run 31216857046](https://github.com/SharifulIslamSabuj/mobile-automation-framework/actions/runs/31216857046), 13m54s, workflow status: green.**
+
+The `android:id/button1` hypothesis (Section 8) was correct on the first attempt — no further iteration was required. Verified against the authoritative JUnit XML results (`build/test-results/test/*.xml`), not just the workflow's green badge:
+
+| Test Class | Tests | Failures | Errors |
+|---|---:|---:|---:|
+| `CartTest` | 13 | 0 | 0 |
+| `LoginTest` | 1 | 0 | 0 |
+| `NavigationTest` | 1 | 0 | 0 |
+| `ProductDetailsTest` | 4 | 0 | 0 |
+| **Total** | **19** | **0** | **0** |
+
+Screenshot evidence corroborates: `tc028_06_fingerprint_destination_*.png` and `tc028_06_fingerprint_returned_to_catalog_*.png` are both present in this run's artifact bundle (`mobile-automation-run-13`) — the latter only ever gets captured if the FingerPrint title assertion passed and back-navigation completed, confirming the fix's full flow executed correctly end-to-end, not just that the workflow happened to go green for an unrelated reason.
+
+### Before vs. After
+
+```
+Run 10 (baseline)
+-----------------
+19 tests
+1 failed (accessDrawerItems)
+
+↓
+
+Run 11 (31216857046)
+---------------------
+19 tests
+0 failed
+```
+
+The one failure that disappeared is `NavigationTest.accessDrawerItems` (TC-028), resolved by the conditional Biometrics-dialog dismissal described in Section 6. No other test's outcome changed — all 18 previously-passing tests remain passing, confirming the fix introduced no regression.
 
 ---
 
 ## 10. Recommendation
 
-Pending Section 9's CI confirmation: if the fix resolves the failure, **Option A (19/19)** is achieved and the framework's CI baseline requires no further disclosed limitations. If the assumption in Section 8 proves wrong, the specific, diagnosable failure evidence from that run will be used for one further, narrowly-scoped iteration — not a reversion to undocumented guessing.
+# Option A achieved — 19/19 tests passing
+
+No disclosed CI-specific test limitation remains. The pipeline's remaining, unrelated future work (Docker, parallel execution, Grid, cloud device providers, Allure, iOS) is out of this investigation's scope and already tracked on the project's own roadmap (MA-CICD-001 §14, README Future Roadmap).
 
 ---
 
