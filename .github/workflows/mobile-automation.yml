@@ -162,27 +162,22 @@ jobs:
             appium server --log-level info --relaxed-security > "${RUNNER_TEMP}/appium-server.log" 2>&1 &
 
             echo "Waiting for Appium server to become reachable at http://127.0.0.1:4723 ..."
-            for i in $(seq 1 30); do
-              if curl -sf http://127.0.0.1:4723/status > /dev/null; then
-                echo "Appium server is reachable."
-                break
-              fi
-              if [ "$i" -eq 30 ]; then
-                echo "::error::Appium server did not become reachable within 60 seconds."
-                exit 1
-              fi
-              sleep 2
-            done
+            # Single physical line — Phase 17.5C confirmed this action executes each line of
+            # `script:` as its own independent `sh -c` invocation, not as one cohesive script
+            # file, so a multi-line for/if/done block is syntactically incomplete on any one
+            # of its lines ("Syntax error: end of file unexpected (expecting \"done\")", run
+            # 31172844867). Statements are joined with `;` instead of newlines.
+            for i in $(seq 1 30); do if curl -sf http://127.0.0.1:4723/status > /dev/null; then echo "Appium server is reachable."; break; fi; if [ "$i" -eq 30 ]; then echo "::error::Appium server did not become reachable within 60 seconds."; exit 1; fi; sleep 2; done
 
             echo "Build Validation: compiling framework and test sources..."
             ./gradlew compileJava compileTestJava --no-daemon
 
             echo "Test Execution: running the full suite (19 automated test cases, unmodified — no group/tag filtering per MA-CICD-002 §9)..."
-            ./gradlew test --no-daemon \
-              -Denv=emulator \
-              -Dplatform.version="${ANDROID_PLATFORM_VERSION}" \
-              -Ddevice.name="${EMULATOR_DEVICE_NAME}" \
-              -Dapp.path="${APK_PATH}"
+            # Single physical line for the same reason as above (Phase 17.5C) — this
+            # invocation used the identical backslash-continuation pattern already proven
+            # unsafe elsewhere in this script (Phase 17.5A), fixed here pre-emptively using
+            # the now-confirmed root cause rather than waiting for its own separate failure.
+            ./gradlew test --no-daemon -Denv=emulator -Dplatform.version="${ANDROID_PLATFORM_VERSION}" -Ddevice.name="${EMULATOR_DEVICE_NAME}" -Dapp.path="${APK_PATH}"
 
       # ---------------------------------------------------------------------
       # Report Collection (MA-CICD-002 §7) — confirms the expected output
