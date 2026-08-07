@@ -155,8 +155,11 @@ jobs:
             set -eu
 
             echo "Starting Appium server (v${APPIUM_SERVER_VERSION})..."
-            appium server --log-level info --relaxed-security \
-              > "${RUNNER_TEMP}/appium-server.log" 2>&1 &
+            # Single physical line — Phase 17.5A found that a trailing backslash-newline
+            # continuation here is not honored in this action's script-execution context;
+            # the literal `\` was passed through to Appium's CLI as an argument and rejected
+            # ("Unrecognized arguments: \\", run 31171896995).
+            appium server --log-level info --relaxed-security > "${RUNNER_TEMP}/appium-server.log" 2>&1 &
 
             echo "Waiting for Appium server to become reachable at http://127.0.0.1:4723 ..."
             for i in $(seq 1 30); do
