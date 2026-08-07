@@ -62,8 +62,15 @@ public class ProductDetailsPage extends BasePage {
         elementActions.click(ProductDetailsLocators.ADD_TO_CART_BUTTON);
     }
 
-    /** @return whether the Add To Cart button is displayed. */
+    /**
+     * @return whether the Add To Cart button is displayed. Scrolls it into
+     * view first — see {@link #addToCart()} for why (Phase 17.6A); Phase
+     * 17.6I found this separate visibility-check method needed the same
+     * fix, missed originally because {@link #addToCart()} alone covered
+     * every caller known at the time.
+     */
     public boolean isAddToCartButtonDisplayed() {
+        ScrollUtility.scrollToAccessibilityId(ProductDetailsLocators.ADD_TO_CART_BUTTON_ACCESSIBILITY_ID);
         return elementActions.isDisplayed(ProductDetailsLocators.ADD_TO_CART_BUTTON);
     }
 
