@@ -29,8 +29,10 @@ public final class CheckoutLocators {
     public static final By ZIP_CODE_FIELD = By.id(PACKAGE + "zipET");
     public static final By COUNTRY_FIELD = By.id(PACKAGE + "countryET");
 
+    /** Raw accessibility id — exposed separately because {@code ScrollUtility#scrollToAccessibilityId(String)} needs the raw id, not a {@link By} (same precedent as {@code ProductDetailsLocators}, Phase 17.6A). Added Phase 17.6C: on some viewports (CI emulator evidence) this button renders below the fold once the shipping form is populated. */
+    public static final String TO_PAYMENT_BUTTON_ACCESSIBILITY_ID = "Saves user info for checkout";
     /** To Payment / Continue button — accessibility id, never the reused resource-id {@code paymentBtn} (LOCATOR_REPOSITORY.md line 214: {@code paymentBtn} is reused 3 times across this screen, the Payment screen, and the Review Order flow — accessibility id is the reliable differentiator). Added Phase 12.2 for TC-021. */
-    public static final By TO_PAYMENT_BUTTON = AppiumBy.accessibilityId("Saves user info for checkout");
+    public static final By TO_PAYMENT_BUTTON = AppiumBy.accessibilityId(TO_PAYMENT_BUTTON_ACCESSIBILITY_ID);
 
     private CheckoutLocators() {
     }

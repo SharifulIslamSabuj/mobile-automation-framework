@@ -3,6 +3,7 @@ package com.mobileautomation.framework.pages;
 import com.mobileautomation.framework.core.BasePage;
 import com.mobileautomation.framework.locators.CheckoutLocators;
 import com.mobileautomation.framework.models.ShippingAddress;
+import com.mobileautomation.framework.utils.ScrollUtility;
 import com.mobileautomation.framework.utils.WaitUtility;
 
 /**
@@ -177,8 +178,14 @@ public class CheckoutPage extends BasePage {
         return elementActions.getText(CheckoutLocators.COUNTRY_FIELD);
     }
 
-    /** @return whether the To Payment button is displayed. Added Phase 12.2 for TC-021. */
+    /**
+     * @return whether the To Payment button is displayed. Added Phase 12.2 for TC-021.
+     * Scrolls it into view first — Phase 17.6C found this control renders below
+     * the fold once the shipping form is populated on some viewports (CI
+     * emulator evidence); a no-op on a viewport where it's already visible.
+     */
     public boolean isToPaymentButtonDisplayed() {
+        ScrollUtility.scrollToAccessibilityId(CheckoutLocators.TO_PAYMENT_BUTTON_ACCESSIBILITY_ID);
         return elementActions.isDisplayed(CheckoutLocators.TO_PAYMENT_BUTTON);
     }
 
