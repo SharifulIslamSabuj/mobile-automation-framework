@@ -61,6 +61,19 @@ public final class DrawerDestinationLocators {
     public static final By RESET_DIALOG_CANCEL_BUTTON = By.id("android:id/button2");
     public static final By RESET_DIALOG_CONFIRM_BUTTON = By.id("android:id/button1");
 
+    /**
+     * Biometrics "not supported" dialog — a standard Android platform
+     * {@code AlertDialog}, structurally identical to the Reset App State
+     * dialog above (title + message + single button). Appears when the
+     * FingerPrint screen loads on a device/emulator without biometric
+     * hardware configured (Phase 18 investigation). Reuses
+     * {@code android:id/button1} — the exact same platform id already
+     * verified correct for this AUT's Reset dialog via live-device evidence
+     * (Phase 15.1) — not a new or invented locator, the same OS-level id
+     * applied to a second occurrence of the same OS dialog widget.
+     */
+    public static final By BIOMETRICS_DIALOG_OK_BUTTON = By.id("android:id/button1");
+
     private DrawerDestinationLocators() {
     }
 }

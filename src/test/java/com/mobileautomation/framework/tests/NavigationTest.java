@@ -63,8 +63,25 @@ public class NavigationTest extends BaseTest {
                 drawerPage::isDrawingTitleDisplayed, "Drawing screen — title", "tc028_04_drawing");
         verifyDrawerDestination(productsPage, drawerPage, "About",
                 drawerPage::isAboutTitleDisplayed, "About screen — title", "tc028_05_about");
-        verifyDrawerDestination(productsPage, drawerPage, "FingerPrint",
-                drawerPage::isFingerprintTitleDisplayed, "FingerPrint screen — title", "tc028_06_fingerprint");
+        // FingerPrint — handled inline, not via verifyDrawerDestination, because this AUT shows a
+        // native "Biometrics not supported" AlertDialog on load when the device/emulator has no
+        // biometric hardware (confirmed absent on this CI emulator; not seen in this project's
+        // real-device evidence). Dismissed only if present — a no-op on hardware where it never
+        // appears (Phase 18 investigation).
+        logger.info("Selecting drawer item: FingerPrint.");
+        productsPage.tapMenu();
+        CommonAssertions.verifyVisible(productsPage.isDrawerItemDisplayed("FingerPrint"), "Navigation Drawer — FingerPrint item");
+        productsPage.tapDrawerItem("FingerPrint");
+        ScreenshotManager.captureScreenshot("tc028_06_fingerprint_destination");
+        if (drawerPage.isBiometricsDialogDisplayed()) {
+            logger.info("Biometrics dialog present (no biometric hardware on this device/emulator) — dismissing.");
+            drawerPage.dismissBiometricsDialog();
+        }
+        CommonAssertions.verifyVisible(drawerPage.isFingerprintTitleDisplayed(), "FingerPrint screen — title");
+        drawerPage.navigateBack();
+        ScreenshotManager.captureScreenshot("tc028_06_fingerprint_returned_to_catalog");
+        CommonAssertions.verifyVisible(productsPage.isDisplayed(), "Product Catalog screen (after returning from FingerPrint)");
+
         verifyDrawerDestination(productsPage, drawerPage, "Virtual USB",
                 drawerPage::isVirtualUsbMessageDisplayed, "Virtual USB screen — dynamic status message", "tc028_07_virtual_usb");
 

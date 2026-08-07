@@ -68,6 +68,16 @@ public class NavigationDrawerPage extends BasePage {
         elementActions.click(DrawerDestinationLocators.RESET_DIALOG_CANCEL_BUTTON);
     }
 
+    /** @return whether the Biometrics "not supported" dialog (a standard Android platform {@code AlertDialog}) is currently displayed — appears when the FingerPrint screen loads on a device/emulator without biometric hardware. Added Phase 18. */
+    public boolean isBiometricsDialogDisplayed() {
+        return elementActions.isDisplayed(DrawerDestinationLocators.BIOMETRICS_DIALOG_OK_BUTTON);
+    }
+
+    /** Dismisses the Biometrics "not supported" dialog via its OK button. Added Phase 18. */
+    public void dismissBiometricsDialog() {
+        elementActions.click(DrawerDestinationLocators.BIOMETRICS_DIALOG_OK_BUTTON);
+    }
+
     /** Navigates back via the system back gesture — same mechanism {@code ProductDetailsPage#navigateBack()} already uses, confirmed correct by TC-029; also confirmed this phase to correctly return from Virtual USB's separate Activity, not just a fragment. */
     public void navigateBack() {
         navigationHelper.back();
