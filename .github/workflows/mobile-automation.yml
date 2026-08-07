@@ -1,0 +1,231 @@
+# Mobile Automation Framework — Continuous Integration
+#
+# Implements MA-CICD-001 (Architecture), MA-CICD-002 (Workflow Specification),
+# Phase 17.2A (Implementation Readiness Report), and Phase 17.2B (Implementation
+# Decision Report). Every decision below traces back to one of those four
+# documents — see docs/ci/. This workflow is deliberately v1.1.0 scope only:
+# single job, sequential execution, one Android target, no TestNG group
+# filtering, no pipeline-level retry (the framework's own RetryAnalyzer
+# already handles flaky-method retry — see MA-CICD-001 §11).
+
+name: Mobile Automation Framework CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least-privilege: this workflow only reads repository content. It never
+# commits, comments, publishes, or deploys anything. (MA-CICD-002 §6)
+permissions:
+  contents: read
+
+env:
+  # Pinned per Phase 17.2B Decision 2 — verified against the npm registry at
+  # decision time (registry.npmjs.org/appium/latest and
+  # registry.npmjs.org/appium-uiautomator2-driver/latest). Re-verify and bump
+  # deliberately; do not float to `latest` (MA-CICD-001 §4, "Reproducible Builds").
+  APPIUM_SERVER_VERSION: "3.6.0"
+  APPIUM_UIAUTOMATOR2_DRIVER_VERSION: "8.2.2"
+  # Pinned per Phase 17.2B Decision 1 — the exact release asset published by
+  # the AUT's own upstream repository, matching this project's documented
+  # aut_version (2.2.0, see MA-LOC-001 frontmatter) and its cited source commit.
+  AUT_RELEASE_TAG: "2.2.0"
+  AUT_APK_ASSET: "mda-2.2.0-25.apk"
+  AUT_DOWNLOAD_URL: "https://github.com/saucelabs/my-demo-app-android/releases/download/2.2.0/mda-2.2.0-25.apk"
+  # Emulator target, pinned per Phase 17.2B Decision 3.
+  ANDROID_API_LEVEL: "34"
+  ANDROID_PLATFORM_VERSION: "14"
+  ANDROID_TARGET: "google_apis"
+  ANDROID_ARCH: "x86_64"
+  ANDROID_DEVICE_PROFILE: "pixel"
+  # The ADB serial assigned to the first (and, in this single-job workflow,
+  # only) booted emulator instance — standard adb port-assignment behavior,
+  # not an assumption tied to a specific provisioning tool.
+  EMULATOR_DEVICE_NAME: "emulator-5554"
+
+jobs:
+  build-and-test:
+    name: Build & Test (Android Emulator)
+    runs-on: ubuntu-24.04
+    # Safety ceiling consistent with MA-CICD-001 §4 "Fail Fast" — a hung step
+    # (e.g. an Appium server that never becomes reachable) fails the job
+    # instead of consuming runner minutes indefinitely.
+    timeout-minutes: 30
+
+    steps:
+      # ---------------------------------------------------------------------
+      # Repository Checkout (MA-CICD-002 §7)
+      # ---------------------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v7.0.1
+
+      # ---------------------------------------------------------------------
+      # JDK 17 Setup (MA-CICD-002 §7 / §5 — pinned explicitly, not left to
+      # whatever JDK the runner image happens to default to)
+      # ---------------------------------------------------------------------
+      - name: Set Up JDK 17
+        uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # ---------------------------------------------------------------------
+      # Gradle Cache Restore (MA-CICD-002 §9) — keys on build.gradle and the
+      # wrapper's own properties automatically; the committed gradlew wrapper
+      # is still what actually invokes Gradle in every step below.
+      # ---------------------------------------------------------------------
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v6.3.0
+
+      # ---------------------------------------------------------------------
+      # KVM Hardware Acceleration (Phase 17.2A R3 / Phase 17.2B Decision 3)
+      # Not automatic on GitHub-hosted Linux runners — verified against
+      # GitHub's own changelog guidance and applied here explicitly.
+      # ---------------------------------------------------------------------
+      - name: Enable KVM Hardware Acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # ---------------------------------------------------------------------
+      # Appium Server + UiAutomator2 Driver Installation (Phase 17.2A R2 /
+      # Phase 17.2B Decision 2). Node.js ships preinstalled on the ubuntu-24.04
+      # runner image (verified, Phase 17.2A) — no separate Node setup step.
+      # ---------------------------------------------------------------------
+      - name: Install Appium Server
+        run: npm install --global "appium@${{ env.APPIUM_SERVER_VERSION }}"
+
+      - name: Install UiAutomator2 Driver
+        run: appium driver install "uiautomator2@${{ env.APPIUM_UIAUTOMATOR2_DRIVER_VERSION }}"
+
+      # ---------------------------------------------------------------------
+      # AUT APK Retrieval (Phase 17.2B Decision 1) — restored from cache
+      # (keyed on the pinned release tag) on every run after the first;
+      # downloaded directly from the AUT's own upstream release only on a
+      # cache miss. Never committed to this repository.
+      # ---------------------------------------------------------------------
+      - name: Restore Cached AUT APK
+        id: apk-cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/${{ env.AUT_APK_ASSET }}
+          key: aut-apk-${{ env.AUT_RELEASE_TAG }}
+
+      - name: Download AUT APK
+        if: steps.apk-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fL -o "${{ runner.temp }}/${{ env.AUT_APK_ASSET }}" "${{ env.AUT_DOWNLOAD_URL }}"
+
+      - name: Export APK Path
+        run: echo "APK_PATH=${{ runner.temp }}/${{ env.AUT_APK_ASSET }}" >> "$GITHUB_ENV"
+
+      # ---------------------------------------------------------------------
+      # Android Emulator Provisioning, Build Validation & Test Execution
+      # (MA-CICD-002 §7/§8, Phase 17.2B Decision 3). One action call boots the
+      # emulator (system image + AVD creation + boot-completed wait are
+      # handled internally, with an explicit boot timeout ceiling below) and
+      # runs the provided script only once the emulator reports ready.
+      #
+      # Build Validation and Test Execution are two explicit, separately
+      # logged commands inside this single script — Gradle's own task graph
+      # already guarantees compilation gates test execution (verified,
+      # Phase 17.2A §6), so `set -e` here reproduces MA-CICD-002 §8's
+      # "compile failure halts before test execution" behavior exactly,
+      # without a second emulator boot/teardown cycle for a separate step.
+      # ---------------------------------------------------------------------
+      - name: Android Emulator Provisioning, Build Validation & Test Execution
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: ${{ env.ANDROID_API_LEVEL }}
+          target: ${{ env.ANDROID_TARGET }}
+          arch: ${{ env.ANDROID_ARCH }}
+          profile: ${{ env.ANDROID_DEVICE_PROFILE }}
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: |
+            set -euo pipefail
+
+            echo "Starting Appium server (v${APPIUM_SERVER_VERSION})..."
+            appium server --log-level info --relaxed-security \
+              > "${RUNNER_TEMP}/appium-server.log" 2>&1 &
+
+            echo "Waiting for Appium server to become reachable at http://127.0.0.1:4723 ..."
+            for i in $(seq 1 30); do
+              if curl -sf http://127.0.0.1:4723/status > /dev/null; then
+                echo "Appium server is reachable."
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "::error::Appium server did not become reachable within 60 seconds."
+                exit 1
+              fi
+              sleep 2
+            done
+
+            echo "Build Validation: compiling framework and test sources..."
+            ./gradlew compileJava compileTestJava --no-daemon
+
+            echo "Test Execution: running the full suite (19 automated test cases, unmodified — no group/tag filtering per MA-CICD-002 §9)..."
+            ./gradlew test --no-daemon \
+              -Denv=emulator \
+              -Dplatform.version="${ANDROID_PLATFORM_VERSION}" \
+              -Ddevice.name="${EMULATOR_DEVICE_NAME}" \
+              -Dapp.path="${APK_PATH}"
+
+      # ---------------------------------------------------------------------
+      # Report Collection (MA-CICD-002 §7) — confirms the expected output
+      # locations exist before upload is attempted; diagnostic only, does not
+      # fail the run.
+      # ---------------------------------------------------------------------
+      - name: Verify Artifact Output
+        if: always()
+        run: |
+          echo "reports/:"; ls -la reports 2>/dev/null || echo "  not present"
+          echo "reports/screenshots/:"; ls -la reports/screenshots 2>/dev/null || echo "  not present"
+          echo "logs/:"; ls -la logs 2>/dev/null || echo "  not present"
+          echo "build/reports/tests/test/:"; ls -la build/reports/tests/test 2>/dev/null || echo "  not present"
+          echo "build/test-results/test/:"; ls -la build/test-results/test 2>/dev/null || echo "  not present"
+
+      # ---------------------------------------------------------------------
+      # Artifact Upload (Phase 17.2B Decision 4) — the five Required
+      # artifact locations, uploaded unconditionally (pass or fail), per
+      # MA-CICD-001 §11: a failing run's evidence is more valuable than a
+      # passing run's, never less.
+      # ---------------------------------------------------------------------
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mobile-automation-run-${{ github.run_number }}
+          path: |
+            reports/
+            logs/
+            build/reports/tests/test/
+            build/test-results/test/
+          if-no-files-found: warn
+          retention-days: 90
+
+      # ---------------------------------------------------------------------
+      # Workflow Summary (MA-CICD-002 §7)
+      # ---------------------------------------------------------------------
+      - name: Publish Workflow Summary
+        if: always()
+        run: |
+          {
+            echo "## Mobile Automation Framework — CI Run Summary"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Android Target | API ${{ env.ANDROID_API_LEVEL }} (Android ${{ env.ANDROID_PLATFORM_VERSION }}), ${{ env.ANDROID_ARCH }}, ${{ env.ANDROID_TARGET }}, ${{ env.ANDROID_DEVICE_PROFILE }} profile |"
+            echo "| Appium Server | ${{ env.APPIUM_SERVER_VERSION }} |"
+            echo "| UiAutomator2 Driver | ${{ env.APPIUM_UIAUTOMATOR2_DRIVER_VERSION }} |"
+            echo "| AUT | Sauce Labs My Demo App \`${{ env.AUT_RELEASE_TAG }}\` (\`${{ env.AUT_APK_ASSET }}\`) |"
+            echo ""
+            echo "Full ExtentReports HTML, the Gradle test report, execution logs, and failure screenshots are attached to this run as the \`mobile-automation-run-${{ github.run_number }}\` artifact."
+          } >> "$GITHUB_STEP_SUMMARY"

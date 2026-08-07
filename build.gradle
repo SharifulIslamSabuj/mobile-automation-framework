@@ -90,6 +90,15 @@ test {
     // run it exactly as before; this only prevents "zero tests" itself from being an error
     // during the foundation-only phases.
     failOnNoDiscoveredTests = false
+
+    // Gradle's Test task runs in a forked JVM that does not automatically inherit the build
+    // JVM's system properties — a `-Dapp.path=...`/`-Dplatform.version=...`/`-Ddevice.name=...`
+    // passed to `gradlew test` would otherwise never reach ConfigReader at runtime. Required for
+    // MA-CICD-002's system-property override strategy (CI and real-device execution alike) to
+    // actually work. Re-asserted after the forward so it always wins regardless of the host
+    // JVM's own file.encoding value.
+    systemProperties(System.properties)
+    systemProperty 'file.encoding', 'UTF-8'
 }
 
 task printTestRuntimeClasspath {

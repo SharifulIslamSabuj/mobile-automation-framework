@@ -349,7 +349,7 @@ These are scoped exclusions of v1.0.0, not defects — each is a planned area of
 
 | Limitation | Status |
 |---|---|
-| CI pipeline | Not configured — all execution to date has been local |
+| CI pipeline | Implemented (`.github/workflows/mobile-automation.yml`) — runs the full suite on push/PR against a GitHub-hosted Android emulator; not yet exercised by a verified passing run at the time of this update |
 | Docker execution | Not implemented |
 | Parallel execution | Not configured or exercised (driver layer is `ThreadLocal`-based and parallel-ready, but unproven) |
 | Appium/Selenium Grid | Not implemented — single-device execution only |
@@ -366,7 +366,7 @@ These are scoped exclusions of v1.0.0, not defects — each is a planned area of
 
 | Release | Planned Features |
 |:---:|---|
-| **v1.1** | GitHub Actions CI · Docker execution environment · Parallel test execution |
+| **v1.1** | Docker execution environment · Parallel test execution |
 | **v1.2** | Jenkins pipeline integration · Appium/Selenium Grid |
 | **v1.3** | BrowserStack and Sauce Labs cloud device execution |
 | **v2.0** | iOS support · Cross-platform framework · Azure DevOps pipeline integration |
@@ -382,6 +382,7 @@ Nothing in this table is implemented today. It describes intended future work on
 | Enterprise Framework Foundation | 2026-07-31 | Architecture, configuration, driver management, core utilities, cross-cutting infrastructure, base framework, and test data framework implemented and validated |
 | Release v1.0.0 | 2026-08-05 | Page Object layer, test classes, and 19 automated test cases implemented; full documentation baseline audited and frozen |
 | Documentation Portfolio Redesign | 2026-08-05 | README rebuilt as an enterprise-grade landing page reflecting the verified v1.0.0 state |
+| GitHub Actions CI/CD | 2026-08-07 | CI/CD architecture (MA-CICD-001), workflow specification (MA-CICD-002), and implementation readiness/decision reports produced; `.github/workflows/mobile-automation.yml` implemented per those documents |
 
 This progression — foundation, then automation, then a verified release — is the same order the underlying documentation set was built in.
 
