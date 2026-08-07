@@ -134,8 +134,15 @@ public class ProductsPage extends BasePage {
      * diagnostic proved unsound: Appium's UiAutomator2 driver does not
      * support upward (parent/sibling-axis) traversal in a scoped/nested
      * find — only the whole-document form works.
+     * <p>
+     * Re-scrolls to the product's name immediately before reading its price
+     * — Phase 17.6E found that {@link #verifyProductCardExists(String)}'s
+     * own scroll (called earlier by callers of this method) only guarantees
+     * the name text is visible, not the price line beneath it in the same
+     * card; a no-op scroll if the card is already fully in view.
      */
     public String getCardPrice(String productName) {
+        scrollToProduct(productName);
         return elementActions.getText(ProductsLocators.productPriceForCard(productName));
     }
 
