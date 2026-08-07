@@ -135,14 +135,21 @@ public class ProductsPage extends BasePage {
      * support upward (parent/sibling-axis) traversal in a scoped/nested
      * find — only the whole-document form works.
      * <p>
-     * Re-scrolls to the product's name immediately before reading its price
-     * — Phase 17.6E found that {@link #verifyProductCardExists(String)}'s
-     * own scroll (called earlier by callers of this method) only guarantees
-     * the name text is visible, not the price line beneath it in the same
-     * card; a no-op scroll if the card is already fully in view.
+     * Scrolls one page forward before reading the price — Phase 17.6E found
+     * {@link #verifyProductCardExists(String)}'s own scroll only guarantees
+     * the name text meets {@code UiScrollable.scrollIntoView}'s minimal
+     * visibility criterion, not that the price line beneath it in the same
+     * card is visible; Phase 17.6G found re-calling that same criteria-based
+     * scroll (the original fix attempt) is consequently a no-op, confirmed
+     * by an unchanged failure screenshot in CI. {@link ScrollUtility#scrollDown()}
+     * is an unconditional forward scroll, not a criteria-based one, and can
+     * move the viewport past what {@code scrollIntoView} already considered
+     * satisfied. There is no unique locator to scroll to directly for a
+     * specific card's price (its content-desc is shared by every card).
      */
     public String getCardPrice(String productName) {
         scrollToProduct(productName);
+        ScrollUtility.scrollDown();
         return elementActions.getText(ProductsLocators.productPriceForCard(productName));
     }
 
