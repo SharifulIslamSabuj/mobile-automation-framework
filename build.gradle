@@ -80,15 +80,15 @@ dependencies {
 
 test {
     useTestNG()
-    // Pilot-First Enterprise Development Strategy (governance rule, Phases 4-8): no Test Class
-    // exists yet by design — src/test/java currently holds only reusable infrastructure
-    // (assertions.CommonAssertions), zero @Test methods. Gradle 9's default
-    // failOnNoDiscoveredTests=true treats that as a build failure rather than a no-op, which
-    // breaks the documented `gradlew clean build` command (see MA-EFR-001 §28,
-    // docs/framework/FOUNDATION_READINESS_RESOLUTION.md). This does not weaken validation of
-    // any actual test: once Phase 9 adds a real Test Class, the `test` task will discover and
-    // run it exactly as before; this only prevents "zero tests" itself from being an error
-    // during the foundation-only phases.
+    // Retained from the Pilot-First Enterprise Development Strategy's foundation-only phases
+    // (Phases 4-8, governance rule), when src/test/java held only reusable infrastructure
+    // (assertions.CommonAssertions) and zero @Test methods — Gradle 9's default
+    // failOnNoDiscoveredTests=true would have treated that as a build failure rather than a
+    // no-op, breaking the documented `gradlew clean build` command (see MA-EFR-001 §28,
+    // docs/framework/FOUNDATION_READINESS_RESOLUTION.md). Since Phase 9, real Test Classes exist
+    // and are discovered normally (19 automated test cases as of Framework Version 1.0.0), so
+    // this flag has no effect on current runs; left in place as a harmless guard against the
+    // same build failure if the suite is ever pared back to zero tests again.
     failOnNoDiscoveredTests = false
 
     // Gradle's Test task runs in a forked JVM that does not automatically inherit the build

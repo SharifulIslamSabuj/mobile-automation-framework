@@ -1,8 +1,8 @@
 ---
 document_id: MA-CICD-002
 title: GitHub Actions Workflow Specification
-version: v0.1
-status: Draft — Implementation-Ready Candidate
+version: v1.0
+status: Frozen — Implemented and Verified (with one corrected artifact-path error, see Version History)
 author: Project Owner / Repository Maintainer
 created_date: 2026-08-07
 last_updated: 2026-08-07
@@ -24,8 +24,8 @@ classification: Internal
 |---|---|
 | Document ID | MA-CICD-002 |
 | Document Name | GitHub Actions Workflow Specification |
-| Version | v0.1 |
-| Status | Draft — Implementation-Ready Candidate |
+| Version | v1.0 |
+| Status | Frozen — Implemented and Verified (with one corrected artifact-path error, see Version History) |
 | Project | Mobile Automation Framework |
 | Project Code | MA |
 | AUT | Sauce Labs My Demo App (Android) |
@@ -40,6 +40,7 @@ classification: Internal
 | Version | Date | Author | Change Description |
 |---|---|---|---|
 | v0.1 | 2026-08-07 | Project Owner | Initial implementation-ready workflow specification, refining MA-CICD-001 into concrete job/step/trigger decisions for Phase 17.2 (YAML implementation). No YAML, no shell commands, no framework code produced. |
+| v1.0 | 2026-08-08 | Project Owner | Implementation confirmed and independently verified (19/19 tests passing — see [Phase 17 Final Report](PHASE_17_FINAL_CI_BASELINE_QUALIFICATION_REPORT.md) and [Phase 18 Investigation Report](PHASE_18_CI_PARITY_INVESTIGATION_REPORT.md)). §11's "TestNG XML result output" row corrected below — Phase 17.2A's readiness assessment found the actual path (`build/test-results/test/`) differs from what this document originally specified (`test-output/`), and the implemented workflow uses the corrected path; this was the only factual correction implementation required against this document's original decisions. |
 
 ---
 
@@ -243,7 +244,7 @@ If a future test-design phase introduces TestNG groups (e.g. tagging test method
 |---|---|---|---|
 | ExtentReports HTML | `ExtentReportManager` | `reports/AutomationReport_*.html` | Yes |
 | Gradle test report | Gradle's built-in HTML test reporter | Gradle's standard report output directory | Yes |
-| TestNG XML result output | TestNG's native XML reporter | `test-output/` (gitignored, runtime-only, same as `reports/`) | Yes |
+| TestNG XML result output | Gradle's built-in JUnit-format XML reporter (not `test-output/` as originally specified here — corrected v1.0, see Version History) | `build/test-results/test/` (gitignored via `build/`) | Yes |
 | Structured execution logs | Log4j2, via `LogManager` | `logs/` | Yes |
 | Failure screenshots | `ScreenshotManager` | `reports/screenshots/` | Yes |
 | Allure results | Not applicable — Allure is a v1.8.0 capability | — | No |
@@ -370,8 +371,8 @@ Exit criteria that must be true before Phase 17.2 (YAML implementation) may begi
 | Prepared By | Project Owner / Repository Maintainer | Submitted | 2026-08-07 |
 | Reviewed By | Pending | Pending | — |
 | Approved By | Pending | Pending | — |
-| Document Status | Draft — Implementation-Ready Candidate | — | — |
+| Document Status | Frozen — Implemented and Verified | — | 2026-08-08 |
 
 ---
 
-**End of Document — MA-CICD-002, v0.1**
+**End of Document — MA-CICD-002, v1.0**

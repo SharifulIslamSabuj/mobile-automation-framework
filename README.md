@@ -101,7 +101,7 @@ Not a feature list — a description of engineering discipline, shown against th
 | Functional Requirements | 31 |
 | Test Scenarios | 32 |
 | Total Test Cases | 32 |
-| Documentation Files | 23 |
+| Documentation Files | 48 |
 | Enterprise Governing Documents | 5 |
 
 </div>
@@ -127,6 +127,7 @@ Every value above is a direct repository count, not an estimate.
 | Reusable Components | Shared alert, toolbar, dialog, and popup components across Page Objects | Implemented |
 | Reusable Assertions | `CommonAssertions` wrapper integrated with the reporting layer | Implemented |
 | Documentation Baseline | 5 governing documents, audited and frozen | Implemented |
+| Continuous Integration | GitHub Actions — full suite on an Android emulator, triggered on push/PR (`.github/workflows/mobile-automation.yml`); verified reproducibly green (19/19) | Implemented |
 
 ---
 
@@ -272,7 +273,7 @@ This is one of the strongest parts of this repository — a governing document s
 | [Test Data Design Specification](docs/08-test-design/MA-TDD-001_Test-Data-Design-Specification_v1.0.md) | MA-TDD-001 | v1.6 | Test data sources, formats, automation file mapping |
 | [Locator Repository](docs/automation/LOCATOR_REPOSITORY.md) | MA-LOC-001 | v1.1 | Centralized, AUT-source-verified element locators |
 
-All five were subjected to a whole-project consistency audit, a reconciliation pass, and an independent final re-verification, and were approved as an internally consistent, traceable baseline before this release. The wider documentation set — governance, vision and scope, AUT analysis, test strategy, framework architecture, environment and tooling, test planning, execution and reporting, risk management, and glossary — lives under [`docs/`](docs/) (23 markdown documents in total).
+All five were subjected to a whole-project consistency audit, a reconciliation pass, and an independent final re-verification, and were approved as an internally consistent, traceable baseline before this release. The wider documentation set — governance, vision and scope, AUT analysis, test strategy, framework architecture, environment and tooling, test planning, execution and reporting, risk management, and glossary — lives under [`docs/`](docs/) (48 markdown documents in total, including 25 CI/CD architecture, decision, root-cause, and verification documents under [`docs/ci/`](docs/ci/) tracing the GitHub Actions pipeline from design through its verified 19/19 baseline).
 
 ---
 
@@ -345,11 +346,10 @@ The HTML report is written to `reports/` on completion — open the newest `Auto
 
 ## 16. Current Release Limitations
 
-These are scoped exclusions of v1.0.0, not defects — each is a planned area of future work, listed in [Section 17](#17-future-roadmap).
+These are scoped exclusions of v1.0.0, not defects — each is a planned area of future work, listed in [Section 17](#17-future-roadmap). CI (implemented and verified — see [Section 7](#7-engineering-capability-matrix) and [Section 18](#18-project-evolution)) is not a limitation and is not listed here.
 
 | Limitation | Status |
 |---|---|
-| CI pipeline | Implemented (`.github/workflows/mobile-automation.yml`) — runs the full suite on push/PR against a GitHub-hosted Android emulator; not yet exercised by a verified passing run at the time of this update |
 | Docker execution | Not implemented |
 | Parallel execution | Not configured or exercised (driver layer is `ThreadLocal`-based and parallel-ready, but unproven) |
 | Appium/Selenium Grid | Not implemented — single-device execution only |
@@ -383,6 +383,7 @@ Nothing in this table is implemented today. It describes intended future work on
 | Release v1.0.0 | 2026-08-05 | Page Object layer, test classes, and 19 automated test cases implemented; full documentation baseline audited and frozen |
 | Documentation Portfolio Redesign | 2026-08-05 | README rebuilt as an enterprise-grade landing page reflecting the verified v1.0.0 state |
 | GitHub Actions CI/CD | 2026-08-07 | CI/CD architecture (MA-CICD-001), workflow specification (MA-CICD-002), and implementation readiness/decision reports produced; `.github/workflows/mobile-automation.yml` implemented per those documents |
+| CI Baseline Stabilized | 2026-08-08 | Iteratively debugged against real GitHub Actions runs (workflow-syntax, repository-configuration, and emulator-viewport synchronization fixes) to a reproducibly green, 19/19-passing baseline — see [Phase 17 Final Report](docs/ci/PHASE_17_FINAL_CI_BASELINE_QUALIFICATION_REPORT.md) and [Phase 18 Investigation Report](docs/ci/PHASE_18_CI_PARITY_INVESTIGATION_REPORT.md) |
 
 This progression — foundation, then automation, then a verified release — is the same order the underlying documentation set was built in.
 
