@@ -1,0 +1,15 @@
+# Phase 19.3 — keeps the build context small even though the Dockerfile
+# never COPYs source (Section 5: source is bind-mounted, not baked in).
+# Mirrors .gitignore's runtime/output directories.
+.git/
+.gradle/
+build/
+out/
+reports/
+logs/
+test-output/
+screenshots/
+.idea/
+.vscode/
+*.iml
+*.log
