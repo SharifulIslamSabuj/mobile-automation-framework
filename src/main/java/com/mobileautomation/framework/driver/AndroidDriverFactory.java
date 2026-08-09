@@ -14,9 +14,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Creates Android/UiAutomator2 {@link AppiumDriver} sessions.
@@ -86,47 +83,12 @@ public class AndroidDriverFactory implements DriverFactory {
             return;
         }
 
-        // ===== PHASE 19.4E TEMPORARY DIAGNOSTIC INSTRUMENTATION — REMOVE AFTER INVESTIGATION =====
-        // Read-only in-process capture, synchronous with the actual readiness
-        // decision below (external, out-of-process monitoring in Phase 19.4D
-        // could not reliably observe this exact moment). Does NOT change the
-        // readiness condition itself — still exactly
-        // `queryAppState(appPackage) == RUNNING_IN_FOREGROUND`, unmodified
-        // from Phase 19.4B. See docs/docker/PHASE_19.4E_IN_PROCESS_AUT_READINESS_FORENSIC_REPORT.md.
-        long diagStartNanos = System.nanoTime();
-        AtomicInteger diagPollCounter = new AtomicInteger(0);
-        String[] diagLastSignature = {null};
-        // ===== END PHASE 19.4E SETUP =====
-
         try {
             new WebDriverWait(driver, timeout)
-                    .until(d -> {
-                        ApplicationState state = driver.queryAppState(appPackage);
-                        boolean ready = state == ApplicationState.RUNNING_IN_FOREGROUND;
-
-                        // ===== PHASE 19.4E TEMPORARY DIAGNOSTIC INSTRUMENTATION =====
-                        logAutReadinessDiagnostic(driver, appPackage, diagPollCounter.incrementAndGet(),
-                                diagStartNanos, state, ready, diagLastSignature);
-                        // ===== END =====
-
-                        return ready;
-                    });
+                    .until(d -> driver.queryAppState(appPackage) == ApplicationState.RUNNING_IN_FOREGROUND);
         } catch (TimeoutException e) {
             ApplicationState lastKnownState = driver.queryAppState(appPackage);
             String actualForegroundPackage = safeGetCurrentPackage(driver);
-
-            // ===== PHASE 19.4E TEMPORARY DIAGNOSTIC INSTRUMENTATION =====
-            System.out.println("[AUT-READINESS-DIAG] FINAL_TIMEOUT appPackage=" + appPackage
-                    + " totalPolls=" + diagPollCounter.get()
-                    + " elapsedMs=" + ((System.nanoTime() - diagStartNanos) / 1_000_000)
-                    + " lastKnownState=" + lastKnownState
-                    + " actualForegroundPackage=" + actualForegroundPackage
-                    + " mCurrentFocus=" + safeShellGrep(driver, "dumpsys", List.of("window"), "mCurrentFocus")
-                    + " mFocusedApp=" + safeShellGrep(driver, "dumpsys", List.of("window"), "mFocusedApp")
-                    + " topResumedActivity=" + safeShellGrep(driver, "dumpsys", List.of("activity", "activities"), "topResumedActivity")
-                    + " pid=" + safeShellRaw(driver, "pidof", List.of(appPackage)));
-            // ===== END =====
-
             safeQuit(driver);
             throw new DriverInitializationException(
                     "AUT '" + appPackage + "' did not reach the foreground within " + timeout.getSeconds()
@@ -136,66 +98,6 @@ public class AndroidDriverFactory implements DriverFactory {
                     e);
         }
     }
-
-    // ===== PHASE 19.4E TEMPORARY DIAGNOSTIC INSTRUMENTATION — REMOVE AFTER INVESTIGATION =====
-    // Logs only on the first poll, on any change in the observed signals, or
-    // when readiness resolves — per the phase's own "do not create
-    // unnecessary high-volume logs" instruction, not every single poll.
-    private void logAutReadinessDiagnostic(AndroidDriver driver, String appPackage, int poll, long startNanos,
-                                            ApplicationState state, boolean ready, String[] lastSignature) {
-        String currentFocus = safeShellGrep(driver, "dumpsys", List.of("window"), "mCurrentFocus");
-        String focusedApp = safeShellGrep(driver, "dumpsys", List.of("window"), "mFocusedApp");
-        String resumedActivity = safeShellGrep(driver, "dumpsys", List.of("activity", "activities"), "topResumedActivity");
-        String pid = safeShellRaw(driver, "pidof", List.of(appPackage));
-        String processState = pid.isBlank() ? "NOT_RUNNING" : ("RUNNING pid=" + pid);
-
-        String signature = state + "|" + currentFocus + "|" + focusedApp + "|" + resumedActivity + "|" + processState;
-        boolean changed = !signature.equals(lastSignature[0]);
-        lastSignature[0] = signature;
-
-        if (poll == 1 || changed || ready) {
-            long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
-            System.out.println("[AUT-READINESS-DIAG] poll=" + poll
-                    + " elapsedMs=" + elapsedMs
-                    + " queryAppState=" + state
-                    + " ready=" + ready
-                    + " appPackage=" + appPackage
-                    + " mCurrentFocus=" + currentFocus
-                    + " mFocusedApp=" + focusedApp
-                    + " topResumedActivity=" + resumedActivity
-                    + " processState=" + processState);
-        }
-    }
-
-    /**
-     * Executes a read-only shell command via Appium's official {@code mobile: shell}
-     * extension (requires the Appium server's {@code --relaxed-security} flag,
-     * already set by the CI workflows exercising this diagnostic) and returns
-     * the first line of output containing {@code grepFor}, or {@code "NOT AVAILABLE"}
-     * if the signal cannot be retrieved. Never fabricates a value.
-     */
-    private String safeShellGrep(AndroidDriver driver, String command, List<String> args, String grepFor) {
-        try {
-            Object result = driver.executeScript("mobile: shell", Map.of("command", command, "args", args));
-            return String.valueOf(result).lines()
-                    .filter(line -> line.contains(grepFor))
-                    .findFirst()
-                    .map(String::trim)
-                    .orElse("NOT AVAILABLE");
-        } catch (RuntimeException e) {
-            return "NOT AVAILABLE (" + e.getClass().getSimpleName() + ")";
-        }
-    }
-
-    private String safeShellRaw(AndroidDriver driver, String command, List<String> args) {
-        try {
-            Object result = driver.executeScript("mobile: shell", Map.of("command", command, "args", args));
-            return String.valueOf(result).trim();
-        } catch (RuntimeException e) {
-            return "";
-        }
-    }
-    // ===== END PHASE 19.4E TEMPORARY DIAGNOSTIC INSTRUMENTATION =====
 
     private String safeGetCurrentPackage(AndroidDriver driver) {
         try {
