@@ -96,25 +96,31 @@ jobs:
 
             adb logcat -c
 
-            PRE_LINES=$(wc -l < "${GITHUB_WORKSPACE}/diagnostic-evidence/appium-server-full.log")
-
-            # ---- background signal monitor: samples every ~1s for up to 150s.
-            # Fixed from the first diagnostic attempt: Gradle's cold-start
-            # (dependency resolution + compile, ~44-90s observed elsewhere in
-            # this investigation) consumes most of a short fixed window before
-            # session creation even begins, so the session ID was previously
-            # only found after the session had already closed. This window is
-            # sized to comfortably cover cold-start + driver-init + test run. ----
+            # ---- background signal monitor, two-phase (fixed from two prior
+            # attempts: log-scanning for the session ID lags behind this
+            # framework's actual session lifecycle, which can complete faster
+            # than the scan-and-wait loop's own per-iteration latency once
+            # Gradle's cold-start is out of the way).
+            # Phase A: tight, cheap GET /sessions polling ONLY (no ADB calls)
+            # every 0.2s for up to 90s, waiting for the real active session.
+            # Phase B: once found, dense sampling (queryAppState + ADB dumps)
+            # every 0.3s for up to 40s, covering driver-init through well past
+            # the assertion window. ----
             (
-              SID=""
-              LOGFILE="${GITHUB_WORKSPACE}/diagnostic-evidence/appium-server-full.log"
               TIMELINE="$EVDIR/timeline.txt"
               : > "$TIMELINE"
-              for poll in $(seq 1 150); do
-                TS=$(date -u +%H:%M:%S.%3N)
-                if [ -z "$SID" ]; then
-                  SID=$(tail -n +"$((PRE_LINES+1))" "$LOGFILE" 2>/dev/null | grep -o '"sessionId":"[a-f0-9-]*"' | head -1 | cut -d'"' -f4)
+              SID=""
+              for poll in $(seq 1 450); do
+                SID=$(curl -s "http://127.0.0.1:4723/sessions" | grep -o '"id":"[a-f0-9-]*"' | head -1 | cut -d'"' -f4)
+                if [ -n "$SID" ]; then
+                  echo "PHASE_A_SESSION_FOUND poll=$poll sid=$SID @ $(date -u +%H:%M:%S.%3N)" >> "$TIMELINE"
+                  break
                 fi
+                sleep 0.2
+              done
+
+              for poll in $(seq 1 130); do
+                TS=$(date -u +%H:%M:%S.%3N)
                 {
                   echo "=== SAMPLE $poll @ $TS SID=${SID:-none} ==="
                   if [ -n "$SID" ]; then
@@ -123,7 +129,6 @@ jobs:
                       -H "Content-Type: application/json" \
                       -d "{\"script\":\"mobile: queryAppState\",\"args\":[{\"appId\":\"${AUT_PACKAGE}\"}]}"
                     echo ""
-                    echo "--- appium getCurrentPackage/currentActivity (mobile: shell fallback via ADB below) ---"
                   fi
                   echo "--- dumpsys window (focus) ---"
                   adb shell dumpsys window 2>/dev/null | grep -E "mCurrentFocus|mFocusedApp"
@@ -132,7 +137,7 @@ jobs:
                   echo "--- process existence ---"
                   adb shell ps -A 2>/dev/null | grep "${AUT_PACKAGE}" || echo "(no AUT process)"
                 } >> "$TIMELINE" 2>&1
-                sleep 0.5
+                sleep 0.3
               done
             ) &
             MONITOR_PID=$!
