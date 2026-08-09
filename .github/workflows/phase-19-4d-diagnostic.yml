@@ -1,0 +1,203 @@
+name: Phase 19.4D — AUT Readiness Signal Divergence Diagnostic (Temporary)
+
+# DIAGNOSTIC CHANGE ONLY — no framework/Dockerfile/production-workflow
+# change. Manual-trigger-only, throwaway workflow. Runs the unmodified
+# Phase 19.3 Docker harness image against LoginTest exactly as Phase 19.4C
+# did, while an external, read-only shell-level monitor samples multiple
+# independent Android/Appium state signals every ~0.5s throughout each
+# attempt: Appium's own `mobile: queryAppState` (via raw HTTP, correlated
+# to the real session ID observed in Appium's server log), ADB
+# dumpsys window/activity state, AUT process existence, and periodic
+# screenshots/UI-hierarchy dumps. Does not touch AndroidDriverFactory.java,
+# Dockerfile, .dockerignore, or mobile-automation.yml. Deleted after
+# evidence collection.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  APPIUM_SERVER_VERSION: "3.6.0"
+  APPIUM_UIAUTOMATOR2_DRIVER_VERSION: "8.2.2"
+  AUT_RELEASE_TAG: "2.2.0"
+  AUT_APK_ASSET: "mda-2.2.0-25.apk"
+  AUT_DOWNLOAD_URL: "https://github.com/saucelabs/my-demo-app-android/releases/download/2.2.0/mda-2.2.0-25.apk"
+  AUT_PACKAGE: "com.saucelabs.mydemoapp.android"
+  ANDROID_API_LEVEL: "34"
+  ANDROID_PLATFORM_VERSION: "14"
+  ANDROID_TARGET: "google_apis"
+  ANDROID_ARCH: "x86_64"
+  ANDROID_DEVICE_PROFILE: "pixel"
+  EMULATOR_DEVICE_NAME: "emulator-5554"
+
+jobs:
+  diagnostic:
+    name: Readiness Signal Divergence Diagnostic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Enable KVM Hardware Acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Appium Server
+        run: npm install --global "appium@${{ env.APPIUM_SERVER_VERSION }}"
+
+      - name: Install UiAutomator2 Driver
+        run: appium driver install "uiautomator2@${{ env.APPIUM_UIAUTOMATOR2_DRIVER_VERSION }}"
+
+      - name: Restore Cached AUT APK
+        id: apk-cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/${{ env.AUT_APK_ASSET }}
+          key: aut-apk-${{ env.AUT_RELEASE_TAG }}
+
+      - name: Download AUT APK
+        if: steps.apk-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fL -o "${{ runner.temp }}/${{ env.AUT_APK_ASSET }}" "${{ env.AUT_DOWNLOAD_URL }}"
+
+      - name: Export APK Path
+        run: echo "APK_PATH=${{ runner.temp }}/${{ env.AUT_APK_ASSET }}" >> "$GITHUB_ENV"
+
+      - name: Build Docker Harness Image (unmodified Phase 19.3 Dockerfile)
+        run: docker build -t mobile-automation-harness:phase19.4d .
+
+      - name: Write diagnostic script
+        run: |
+          cat > "${{ github.workspace }}/diagnostic.sh" <<'DIAG_EOF'
+          #!/usr/bin/env bash
+          set -u
+
+          mkdir -p "${GITHUB_WORKSPACE}/diagnostic-evidence"
+          mkdir -p "${RUNNER_TEMP}/docker-gradle-home"
+
+          echo "===== Starting host Appium (full debug log captured) ====="
+          appium server --log-level debug --relaxed-security > "${GITHUB_WORKSPACE}/diagnostic-evidence/appium-server-full.log" 2>&1 &
+          APPIUM_PID=$!
+          READY=0
+          for i in $(seq 1 30); do if curl -sf http://127.0.0.1:4723/status > /dev/null; then READY=1; break; fi; sleep 2; done
+          if [ "$READY" != "1" ]; then echo "Appium did not become reachable"; exit 1; fi
+          echo "Appium ready."
+
+          ATTEMPTS=5
+          for n in $(seq 1 $ATTEMPTS); do
+            echo ""
+            echo "===== ATTEMPT $n / $ATTEMPTS ====="
+            EVDIR="${GITHUB_WORKSPACE}/diagnostic-evidence/attempt-$n"
+            mkdir -p "$EVDIR"
+
+            adb logcat -c
+
+            PRE_LINES=$(wc -l < "${GITHUB_WORKSPACE}/diagnostic-evidence/appium-server-full.log")
+
+            # ---- background signal monitor: samples every 0.5s for up to 40s ----
+            (
+              SID=""
+              LOGFILE="${GITHUB_WORKSPACE}/diagnostic-evidence/appium-server-full.log"
+              TIMELINE="$EVDIR/timeline.txt"
+              : > "$TIMELINE"
+              for poll in $(seq 1 80); do
+                TS=$(date -u +%H:%M:%S.%3N)
+                if [ -z "$SID" ]; then
+                  SID=$(tail -n +"$((PRE_LINES+1))" "$LOGFILE" 2>/dev/null | grep -o '"sessionId":"[a-f0-9-]*"' | head -1 | cut -d'"' -f4)
+                fi
+                {
+                  echo "=== SAMPLE $poll @ $TS SID=${SID:-none} ==="
+                  if [ -n "$SID" ]; then
+                    echo "--- appium mobile:queryAppState ---"
+                    curl -s -X POST "http://127.0.0.1:4723/session/$SID/execute/sync" \
+                      -H "Content-Type: application/json" \
+                      -d "{\"script\":\"mobile: queryAppState\",\"args\":[{\"appId\":\"${AUT_PACKAGE}\"}]}"
+                    echo ""
+                    echo "--- appium getCurrentPackage/currentActivity (mobile: shell fallback via ADB below) ---"
+                  fi
+                  echo "--- dumpsys window (focus) ---"
+                  adb shell dumpsys window 2>/dev/null | grep -E "mCurrentFocus|mFocusedApp"
+                  echo "--- dumpsys activity activities (resumed/top) ---"
+                  adb shell dumpsys activity activities 2>/dev/null | grep -iE "ResumedActivity|topResumedActivity|mFocusedActivity"
+                  echo "--- process existence ---"
+                  adb shell ps -A 2>/dev/null | grep "${AUT_PACKAGE}" || echo "(no AUT process)"
+                } >> "$TIMELINE" 2>&1
+                sleep 0.5
+              done
+            ) &
+            MONITOR_PID=$!
+
+            START_TS=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+            echo "[attempt $n] ATTEMPT_START=$START_TS"
+
+            docker run --rm --network=host \
+              --user "$(id -u):$(id -g)" \
+              -v "${GITHUB_WORKSPACE}:/workspace" \
+              -v "${RUNNER_TEMP}/docker-gradle-home:/tmp/gradle-home" \
+              -e "GRADLE_USER_HOME=/tmp/gradle-home" \
+              -w /workspace \
+              mobile-automation-harness:phase19.4d \
+              ./gradlew test --tests "com.mobileautomation.framework.tests.LoginTest" --no-daemon \
+                -Denv=emulator \
+                -Dappium.serverUrl=http://127.0.0.1:4723 \
+                -Dplatform.version="${ANDROID_PLATFORM_VERSION}" \
+                -Ddevice.name="${EMULATOR_DEVICE_NAME}" \
+                -Dapp.path="${APK_PATH}" \
+              > "$EVDIR/gradle-output.log" 2>&1
+            RESULT=$?
+            END_TS=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+            echo "[attempt $n] ATTEMPT_END=$END_TS RESULT=$RESULT"
+            echo "$RESULT" > "$EVDIR/exit-code.txt"
+
+            sleep 3
+            kill "$MONITOR_PID" 2>/dev/null || true
+            wait "$MONITOR_PID" 2>/dev/null || true
+
+            echo "--- final screenshot ---"
+            adb exec-out screencap -p > "$EVDIR/final-screenshot.png" 2>/dev/null || true
+            echo "--- final UI hierarchy dump ---"
+            adb shell uiautomator dump /sdcard/window_dump.xml > /dev/null 2>&1 || true
+            adb pull /sdcard/window_dump.xml "$EVDIR/ui-hierarchy.xml" > /dev/null 2>&1 || true
+            adb shell dumpsys window windows > "$EVDIR/final-dumpsys-window-windows.txt" 2>&1 || true
+
+            adb logcat -d > "$EVDIR/logcat.txt" 2>&1 || true
+            cp -r "${GITHUB_WORKSPACE}/logs" "$EVDIR/framework-logs" 2>/dev/null || true
+            cp -r "${GITHUB_WORKSPACE}/reports/screenshots" "$EVDIR/screenshots" 2>/dev/null || true
+            cp "${GITHUB_WORKSPACE}/build/test-results/test/TEST-com.mobileautomation.framework.tests.LoginTest.xml" "$EVDIR/junit-result.xml" 2>/dev/null || true
+
+            if [ "$RESULT" -eq 0 ]; then
+              echo "[attempt $n] PASS"
+            else
+              echo "[attempt $n] FAIL"
+            fi
+          done
+
+          kill "$APPIUM_PID" 2>/dev/null || true
+          echo ""
+          echo "===== DIAGNOSTIC RUN COMPLETE ====="
+          DIAG_EOF
+          chmod +x "${{ github.workspace }}/diagnostic.sh"
+
+      - name: Boot Emulator and Run Diagnostic
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: ${{ env.ANDROID_API_LEVEL }}
+          target: ${{ env.ANDROID_TARGET }}
+          arch: ${{ env.ANDROID_ARCH }}
+          profile: ${{ env.ANDROID_DEVICE_PROFILE }}
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: bash ${{ github.workspace }}/diagnostic.sh; true
+
+      - name: Upload Diagnostic Evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: phase-19-4d-diagnostic-${{ github.run_number }}
+          path: diagnostic-evidence/
+          if-no-files-found: warn
+          retention-days: 14
