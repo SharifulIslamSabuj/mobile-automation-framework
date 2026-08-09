@@ -98,13 +98,19 @@ jobs:
 
             PRE_LINES=$(wc -l < "${GITHUB_WORKSPACE}/diagnostic-evidence/appium-server-full.log")
 
-            # ---- background signal monitor: samples every 0.5s for up to 40s ----
+            # ---- background signal monitor: samples every ~1s for up to 150s.
+            # Fixed from the first diagnostic attempt: Gradle's cold-start
+            # (dependency resolution + compile, ~44-90s observed elsewhere in
+            # this investigation) consumes most of a short fixed window before
+            # session creation even begins, so the session ID was previously
+            # only found after the session had already closed. This window is
+            # sized to comfortably cover cold-start + driver-init + test run. ----
             (
               SID=""
               LOGFILE="${GITHUB_WORKSPACE}/diagnostic-evidence/appium-server-full.log"
               TIMELINE="$EVDIR/timeline.txt"
               : > "$TIMELINE"
-              for poll in $(seq 1 80); do
+              for poll in $(seq 1 150); do
                 TS=$(date -u +%H:%M:%S.%3N)
                 if [ -z "$SID" ]; then
                   SID=$(tail -n +"$((PRE_LINES+1))" "$LOGFILE" 2>/dev/null | grep -o '"sessionId":"[a-f0-9-]*"' | head -1 | cut -d'"' -f4)
