@@ -1,0 +1,142 @@
+name: Phase 19.4E — In-Process AUT Readiness Forensic Run (Temporary)
+
+# FORENSIC ONLY — not a production workflow, not a fix-validation workflow.
+# Identical Docker Model 3 architecture/gates as Phase 19.4C (image build,
+# Gates 1-6 connectivity, Gate 7-8 representative test) — trimmed to skip
+# the full 19-test suite (Gates 9-10), since this investigation is scoped
+# to the driver-initialization readiness moment only, not full-suite
+# qualification. Exercises the Phase 19.4E temporary diagnostic
+# instrumentation in AndroidDriverFactory.java. Manual-trigger-only;
+# triggered as 3+ SEPARATE, SEQUENTIAL runs (not batched attempts within
+# one job) per this phase's own reproduction-strategy correction from
+# Phase 19.4D. Does not touch mobile-automation.yml, Dockerfile, or
+# .dockerignore. Deleted after the investigation.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  APPIUM_SERVER_VERSION: "3.6.0"
+  APPIUM_UIAUTOMATOR2_DRIVER_VERSION: "8.2.2"
+  AUT_RELEASE_TAG: "2.2.0"
+  AUT_APK_ASSET: "mda-2.2.0-25.apk"
+  AUT_DOWNLOAD_URL: "https://github.com/saucelabs/my-demo-app-android/releases/download/2.2.0/mda-2.2.0-25.apk"
+  ANDROID_API_LEVEL: "34"
+  ANDROID_PLATFORM_VERSION: "14"
+  ANDROID_TARGET: "google_apis"
+  ANDROID_ARCH: "x86_64"
+  ANDROID_DEVICE_PROFILE: "pixel"
+  EMULATOR_DEVICE_NAME: "emulator-5554"
+
+jobs:
+  forensic-run:
+    name: In-Process Readiness Forensic Run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Enable KVM Hardware Acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Appium Server
+        run: npm install --global "appium@${{ env.APPIUM_SERVER_VERSION }}"
+
+      - name: Install UiAutomator2 Driver
+        run: appium driver install "uiautomator2@${{ env.APPIUM_UIAUTOMATOR2_DRIVER_VERSION }}"
+
+      - name: Restore Cached AUT APK
+        id: apk-cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/${{ env.AUT_APK_ASSET }}
+          key: aut-apk-${{ env.AUT_RELEASE_TAG }}
+
+      - name: Download AUT APK
+        if: steps.apk-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fL -o "${{ runner.temp }}/${{ env.AUT_APK_ASSET }}" "${{ env.AUT_DOWNLOAD_URL }}"
+
+      - name: Export APK Path
+        run: echo "APK_PATH=${{ runner.temp }}/${{ env.AUT_APK_ASSET }}" >> "$GITHUB_ENV"
+
+      - name: Build Docker Harness Image (unmodified Phase 19.3 Dockerfile)
+        run: docker build -t mobile-automation-harness:phase19.4e .
+
+      - name: Write forensic script
+        run: |
+          cat > "${{ github.workspace }}/forensic.sh" <<'FORENSIC_EOF'
+          #!/usr/bin/env bash
+          set -u
+
+          section () { echo ""; echo "===== $1 ====="; }
+
+          section "GATE 1-2: RUNNER + EMULATOR"
+          adb devices -l
+          echo "GATE1_GATE2_STATUS=PASS"
+
+          section "GATE 3: HOST APPIUM"
+          appium server --log-level info --relaxed-security > "${RUNNER_TEMP}/appium-server.log" 2>&1 &
+          APPIUM_PID=$!
+          READY=0
+          for i in $(seq 1 30); do if curl -sf http://127.0.0.1:4723/status > /dev/null; then READY=1; break; fi; sleep 2; done
+          if [ "$READY" != "1" ]; then echo "GATE3_STATUS=FAIL"; exit 1; fi
+          echo "GATE3_STATUS=PASS"
+
+          section "GATE 6: CONTAINER -> HOST APPIUM"
+          docker run --rm --network=host mobile-automation-harness:phase19.4e bash -c 'timeout 5 bash -c "cat < /dev/null > /dev/tcp/127.0.0.1/4723" && echo "GATE6_STATUS=PASS" || echo "GATE6_STATUS=FAIL"'
+
+          section "GATE 7-8: CONTAINER-CREATED APPIUM SESSION VIA ONE REPRESENTATIVE TEST (instrumented)"
+          mkdir -p "${RUNNER_TEMP}/docker-gradle-home"
+          docker run --rm --network=host \
+            --user "$(id -u):$(id -g)" \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -v "${RUNNER_TEMP}/docker-gradle-home:/tmp/gradle-home" \
+            -e "GRADLE_USER_HOME=/tmp/gradle-home" \
+            -w /workspace \
+            mobile-automation-harness:phase19.4e \
+            ./gradlew test --tests "com.mobileautomation.framework.tests.LoginTest" --no-daemon \
+              -Denv=emulator \
+              -Dappium.serverUrl=http://127.0.0.1:4723 \
+              -Dplatform.version="${ANDROID_PLATFORM_VERSION}" \
+              -Ddevice.name="${EMULATOR_DEVICE_NAME}" \
+              -Dapp.path="${APK_PATH}"
+          REPRESENTATIVE_EXIT=$?
+          echo "REPRESENTATIVE_TEST_EXIT=$REPRESENTATIVE_EXIT"
+
+          kill "$APPIUM_PID" 2>/dev/null || true
+          section "FORENSIC SCRIPT COMPLETE"
+          exit 0
+          FORENSIC_EOF
+          chmod +x "${{ github.workspace }}/forensic.sh"
+
+      - name: Boot Emulator and Run Forensic Test
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: ${{ env.ANDROID_API_LEVEL }}
+          target: ${{ env.ANDROID_TARGET }}
+          arch: ${{ env.ANDROID_ARCH }}
+          profile: ${{ env.ANDROID_DEVICE_PROFILE }}
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: bash ${{ github.workspace }}/forensic.sh > ${{ github.workspace }}/forensic-output.log 2>&1; cat ${{ github.workspace }}/forensic-output.log
+
+      - name: Upload Forensic Evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: phase-19-4e-forensic-${{ github.run_number }}
+          path: |
+            ${{ github.workspace }}/forensic-output.log
+            reports/
+            logs/
+            build/reports/tests/test/
+            build/test-results/test/
+          if-no-files-found: warn
+          retention-days: 14
