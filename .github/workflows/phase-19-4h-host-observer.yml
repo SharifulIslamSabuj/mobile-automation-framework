@@ -110,7 +110,7 @@ jobs:
           OUT="$2"
           while true; do
             TS=$(date -u +"%Y-%m-%d %H:%M:%S.%3N")
-            WINDOW_DUMP=$(adb shell dumpsys window windows 2>/dev/null)
+            WINDOW_DUMP=$(adb shell dumpsys window 2>/dev/null)
             CURRENT_FOCUS=$(echo "$WINDOW_DUMP" | grep -m1 "mCurrentFocus")
             FOCUSED_APP=$(echo "$WINDOW_DUMP" | grep -m1 "mFocusedApp")
             ACTIVITY_DUMP=$(adb shell dumpsys activity activities 2>/dev/null)
