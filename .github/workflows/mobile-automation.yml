@@ -52,8 +52,11 @@ jobs:
     runs-on: ubuntu-24.04
     # Safety ceiling consistent with MA-CICD-001 §4 "Fail Fast" — a hung step
     # (e.g. an Appium server that never becomes reachable) fails the job
-    # instead of consuming runner minutes indefinitely.
-    timeout-minutes: 30
+    # instead of consuming runner minutes indefinitely. Raised from 30 to 50
+    # in Phase 19.5 (docs/docker/PHASE_19.5_PRODUCTION_CI_DOCKER_INTEGRATION_REPORT.md):
+    # this job now runs the full suite twice in sequence (native, then Docker,
+    # against the same emulator/Appium instance) plus one Docker image build.
+    timeout-minutes: 50
 
     steps:
       # ---------------------------------------------------------------------
@@ -124,6 +127,17 @@ jobs:
         run: echo "APK_PATH=${{ runner.temp }}/${{ env.AUT_APK_ASSET }}" >> "$GITHUB_ENV"
 
       # ---------------------------------------------------------------------
+      # Docker Harness Image Build (Phase 19.5 — parallel, non-blocking Docker
+      # CI integration; docs/docker/PHASE_19.5_PRODUCTION_CI_DOCKER_INTEGRATION_REPORT.md).
+      # Builds the existing, unmodified Model 3 image (Java 17 + Gradle wrapper
+      # only — no Android SDK/ADB/Node/Appium baked in; see Dockerfile). Runs
+      # before the emulator boots since it needs neither the emulator nor
+      # Appium, keeping the emulator-boot critical path unaffected.
+      # ---------------------------------------------------------------------
+      - name: Build Docker Harness Image
+        run: docker build -t mobile-automation-harness:ci .
+
+      # ---------------------------------------------------------------------
       # Android Emulator Provisioning, Build Validation & Test Execution
       # (MA-CICD-002 §7/§8, Phase 17.2B Decision 3). One action call boots the
       # emulator (system image + AVD creation + boot-completed wait are
@@ -172,48 +186,102 @@ jobs:
             echo "Build Validation: compiling framework and test sources..."
             ./gradlew compileJava compileTestJava --no-daemon
 
-            echo "Test Execution: running the full suite (19 automated test cases, unmodified — no group/tag filtering per MA-CICD-002 §9)..."
+            echo "Native (non-Docker) Test Execution: running the full suite (19 automated test cases, unmodified — no group/tag filtering per MA-CICD-002 §9)..."
             # Single physical line for the same reason as above (Phase 17.5C) — this
             # invocation used the identical backslash-continuation pattern already proven
             # unsafe elsewhere in this script (Phase 17.5A), fixed here pre-emptively using
             # the now-confirmed root cause rather than waiting for its own separate failure.
-            ./gradlew test --no-daemon -Denv=emulator -Dplatform.version="${ANDROID_PLATFORM_VERSION}" -Ddevice.name="${EMULATOR_DEVICE_NAME}" -Dapp.path="${APK_PATH}"
+            #
+            # Phase 19.5: this line is deliberately wrapped so it always returns 0 to this
+            # action's own line-by-line dispatcher (Phase 17.5C: each script line runs as an
+            # independent `sh -c` invocation — no state, including a non-zero exit status,
+            # is implicitly available to later lines). The command's REAL exit code is
+            # captured to a file instead, so the Docker path below still runs regardless of
+            # the native result, and the script's own final line (below) restores that real
+            # exit code as the job's actual pass/fail outcome — the native result remains the
+            # sole quality gate, exactly as before Phase 19.5, and nothing is silently hidden.
+            ./gradlew test --no-daemon -Denv=emulator -Dplatform.version="${ANDROID_PLATFORM_VERSION}" -Ddevice.name="${EMULATOR_DEVICE_NAME}" -Dapp.path="${APK_PATH}" > "${RUNNER_TEMP}/native-test.log" 2>&1; echo $? > "${RUNNER_TEMP}/native-exit-code.txt"; cat "${RUNNER_TEMP}/native-test.log"
+
+            echo "Preserving native (non-Docker) results before Docker execution reuses the same output paths (Phase 19.5)..."
+            mkdir -p ci-results/native; cp -r build/test-results/test ci-results/native/test-results 2>/dev/null || true; cp -r build/reports/tests/test ci-results/native/gradle-report 2>/dev/null || true; cp -r reports ci-results/native/reports 2>/dev/null || true; cp -r logs ci-results/native/logs 2>/dev/null || true; echo "Native results preserved to ci-results/native/"
+
+            echo "Docker Test Execution (Phase 19.5 — parallel, non-blocking qualification; reuses this same already-booted emulator and already-running host Appium server; unmodified test harness bind-mounted read/write at /workspace; Model 3 architecture, --network=host)..."
+            mkdir -p "${RUNNER_TEMP}/docker-gradle-home"
+            # Same non-blocking-line technique as the native command above, same reasoning.
+            # Docker/Appium/emulator/ownership handling matches the evidence-proven pattern
+            # from docs/docker/PHASE_19.3_DOCKER_IMPLEMENTATION_REPORT.md and every Phase
+            # 19.4E-19.4J diagnostic workflow: --network=host for GitHub-hosted Linux,
+            # --user "$(id -u):$(id -g)" + a dedicated GRADLE_USER_HOME to avoid the uid/
+            # permission mismatch a native Linux bind mount otherwise hits (Phase 19.4).
+            docker run --rm --network=host --user "$(id -u):$(id -g)" -v "${GITHUB_WORKSPACE}:/workspace" -v "${RUNNER_TEMP}/docker-gradle-home:/tmp/gradle-home" -e "GRADLE_USER_HOME=/tmp/gradle-home" -w /workspace mobile-automation-harness:ci ./gradlew test --no-daemon -Denv=emulator -Dplatform.version="${ANDROID_PLATFORM_VERSION}" -Ddevice.name="${EMULATOR_DEVICE_NAME}" -Dapp.path="${APK_PATH}" > "${RUNNER_TEMP}/docker-test.log" 2>&1; echo $? > "${RUNNER_TEMP}/docker-exit-code.txt"; cat "${RUNNER_TEMP}/docker-test.log"
+
+            echo "Preserving Docker results (Phase 19.5)..."
+            mkdir -p ci-results/docker; cp -r build/test-results/test ci-results/docker/test-results 2>/dev/null || true; cp -r build/reports/tests/test ci-results/docker/gradle-report 2>/dev/null || true; cp -r reports ci-results/docker/reports 2>/dev/null || true; cp -r logs ci-results/docker/logs 2>/dev/null || true; echo "Docker results preserved to ci-results/docker/"
+
+            echo "Recording both results for later steps and restoring the native result as this job's real pass/fail outcome (Phase 19.5 — Docker execution is additive and non-blocking; its result is fully reported below and in the uploaded artifacts, never hidden)..."
+            NATIVE_EXIT=$(cat "${RUNNER_TEMP}/native-exit-code.txt" 2>/dev/null || echo 1); DOCKER_EXIT=$(cat "${RUNNER_TEMP}/docker-exit-code.txt" 2>/dev/null || echo 1); echo "NATIVE_TEST_EXIT=${NATIVE_EXIT}"; echo "DOCKER_TEST_EXIT=${DOCKER_EXIT}"; echo "native_exit=${NATIVE_EXIT}" >> "$GITHUB_ENV"; echo "docker_exit=${DOCKER_EXIT}" >> "$GITHUB_ENV"; exit "${NATIVE_EXIT}"
 
       # ---------------------------------------------------------------------
       # Report Collection (MA-CICD-002 §7) — confirms the expected output
       # locations exist before upload is attempted; diagnostic only, does not
-      # fail the run.
+      # fail the run. Updated in Phase 19.5 to check both preserved result
+      # sets (ci-results/native/, ci-results/docker/) instead of the raw
+      # build/reports/logs paths, which by this point in the job contain only
+      # whichever of the two runs executed last (Docker).
       # ---------------------------------------------------------------------
       - name: Verify Artifact Output
         if: always()
         run: |
-          echo "reports/:"; ls -la reports 2>/dev/null || echo "  not present"
-          echo "reports/screenshots/:"; ls -la reports/screenshots 2>/dev/null || echo "  not present"
-          echo "logs/:"; ls -la logs 2>/dev/null || echo "  not present"
-          echo "build/reports/tests/test/:"; ls -la build/reports/tests/test 2>/dev/null || echo "  not present"
-          echo "build/test-results/test/:"; ls -la build/test-results/test 2>/dev/null || echo "  not present"
+          echo "ci-results/native/:"; ls -la ci-results/native 2>/dev/null || echo "  not present"
+          echo "ci-results/native/reports/screenshots/:"; ls -la ci-results/native/reports/screenshots 2>/dev/null || echo "  not present"
+          echo "ci-results/native/test-results/:"; ls -la ci-results/native/test-results 2>/dev/null || echo "  not present"
+          echo "ci-results/docker/:"; ls -la ci-results/docker 2>/dev/null || echo "  not present"
+          echo "ci-results/docker/reports/screenshots/:"; ls -la ci-results/docker/reports/screenshots 2>/dev/null || echo "  not present"
+          echo "ci-results/docker/test-results/:"; ls -la ci-results/docker/test-results 2>/dev/null || echo "  not present"
 
       # ---------------------------------------------------------------------
-      # Artifact Upload (Phase 17.2B Decision 4) — the five Required
-      # artifact locations, uploaded unconditionally (pass or fail), per
-      # MA-CICD-001 §11: a failing run's evidence is more valuable than a
-      # passing run's, never less.
+      # Artifact Upload (Phase 17.2B Decision 4) — the Required artifact
+      # locations, uploaded unconditionally (pass or fail), per MA-CICD-001
+      # §11: a failing run's evidence is more valuable than a passing run's,
+      # never less. Phase 19.5 splits this into two independently-named
+      # uploads (native / Docker) so the two execution paths' results are
+      # never combined or ambiguous about which produced which evidence —
+      # the native artifact keeps its original pre-Phase-19.5 name for
+      # backward compatibility with anything already consuming it.
       # ---------------------------------------------------------------------
-      - name: Upload Artifacts
+      - name: Upload Native (Non-Docker) Artifacts
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
           name: mobile-automation-run-${{ github.run_number }}
           path: |
-            reports/
-            logs/
-            build/reports/tests/test/
-            build/test-results/test/
+            ci-results/native/reports
+            ci-results/native/logs
+            ci-results/native/gradle-report
+            ci-results/native/test-results
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload Docker Artifacts (Phase 19.5)
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: mobile-automation-docker-run-${{ github.run_number }}
+          path: |
+            ci-results/docker/reports
+            ci-results/docker/logs
+            ci-results/docker/gradle-report
+            ci-results/docker/test-results
           if-no-files-found: warn
           retention-days: 90
 
       # ---------------------------------------------------------------------
-      # Workflow Summary (MA-CICD-002 §7)
+      # Workflow Summary (MA-CICD-002 §7) — Phase 19.5 adds the native and
+      # Docker result rows so both execution paths' outcomes are visible at a
+      # glance, without implying either was hidden or that Docker's result
+      # changes the job's own pass/fail status (it does not — see the
+      # Android Emulator Provisioning step above and
+      # docs/docker/PHASE_19.5_PRODUCTION_CI_DOCKER_INTEGRATION_REPORT.md).
       # ---------------------------------------------------------------------
       - name: Publish Workflow Summary
         if: always()
@@ -229,6 +297,8 @@ jobs:
             echo "| Appium Server | ${{ env.APPIUM_SERVER_VERSION }} |"
             echo "| UiAutomator2 Driver | ${{ env.APPIUM_UIAUTOMATOR2_DRIVER_VERSION }} |"
             echo "| AUT | Sauce Labs My Demo App \`${{ env.AUT_RELEASE_TAG }}\` (\`${{ env.AUT_APK_ASSET }}\`) |"
+            echo "| Native (non-Docker) Result | Exit code \`${{ env.native_exit }}\` — **this is the job's own quality gate** |"
+            echo "| Docker Result (Phase 19.5, parallel/non-blocking) | Exit code \`${{ env.docker_exit }}\` — reported honestly, does not affect job status during this qualification phase |"
             echo ""
-            echo "Full ExtentReports HTML, the Gradle test report, execution logs, and failure screenshots are attached to this run as the \`mobile-automation-run-${{ github.run_number }}\` artifact."
+            echo "Full ExtentReports HTML, the Gradle test report, execution logs, and failure screenshots for the **native** path are attached as \`mobile-automation-run-${{ github.run_number }}\`; the **Docker** path's equivalent evidence is attached as \`mobile-automation-docker-run-${{ github.run_number }}\`."
           } >> "$GITHUB_STEP_SUMMARY"
