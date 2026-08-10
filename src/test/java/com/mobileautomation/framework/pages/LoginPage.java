@@ -4,9 +4,6 @@ import com.mobileautomation.framework.core.BasePage;
 import com.mobileautomation.framework.exceptions.ElementActionException;
 import com.mobileautomation.framework.locators.LoginLocators;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
-
-import java.util.List;
 
 /**
  * Page Object for the Login screen (MA-LOC-001 §5).
@@ -50,65 +47,10 @@ public class LoginPage extends BasePage {
 
     /** Enters both fields and submits the form — composes {@link #enterUsername}, {@link #enterPassword}, {@link #tapLogin}. */
     public void login(String username, String password) {
-        // ===== PHASE 19.4I TEMPORARY DIAGNOSTIC INSTRUMENTATION — REMOVE AFTER INVESTIGATION =====
-        // T0-T3 field-value checkpoints around the username field, per
-        // docs/docker/PHASE_19.4I_LOGIN_INPUT_RELIABILITY_FORENSIC_REPORT.md.
-        // Uses the framework's own existing getText()/findElements() — no new
-        // observation mechanism, no background thread, no shared-session
-        // polling (Phase 19.4G's contention pattern is not reintroduced).
-        logger.info("[LOGIN-INPUT-DIAG] checkpoint=T0 field=username value=\"{}\"",
-                safeFieldSnapshot(LoginLocators.USERNAME_FIELD));
-        // ===== END =====
-
         enterUsername(username);
-
-        // ===== PHASE 19.4I TEMPORARY DIAGNOSTIC INSTRUMENTATION =====
-        String t1 = safeFieldSnapshot(LoginLocators.USERNAME_FIELD);
-        logger.info("[LOGIN-INPUT-DIAG] checkpoint=T1 field=username expected=\"{}\" actual=\"{}\" match={}",
-                username, t1, username.equals(t1));
-        // ===== END =====
-
         enterPassword(password);
-
-        // ===== PHASE 19.4I TEMPORARY DIAGNOSTIC INSTRUMENTATION =====
-        String t2 = safeFieldSnapshot(LoginLocators.USERNAME_FIELD);
-        logger.info("[LOGIN-INPUT-DIAG] checkpoint=T2 field=username expected=\"{}\" actual=\"{}\" match={}",
-                username, t2, username.equals(t2));
-        // ===== END =====
-
         tapLogin();
-
-        // ===== PHASE 19.4I TEMPORARY DIAGNOSTIC INSTRUMENTATION =====
-        // Non-waiting snapshot: after a successful login the screen navigates
-        // away and the field no longer exists, so this deliberately does NOT
-        // use elementActions.getText() (which would block for the full
-        // explicit-wait timeout on every passing run).
-        String t3 = safeFieldSnapshotNoWait(LoginLocators.USERNAME_FIELD);
-        logger.info("[LOGIN-INPUT-DIAG] checkpoint=T3 field=username actual=\"{}\"", t3);
-        // ===== END =====
     }
-
-    // ===== PHASE 19.4I TEMPORARY DIAGNOSTIC INSTRUMENTATION — REMOVE AFTER INVESTIGATION =====
-    private String safeFieldSnapshot(By locator) {
-        try {
-            return elementActions.getText(locator);
-        } catch (RuntimeException e) {
-            return "ERROR(" + e.getClass().getSimpleName() + ")";
-        }
-    }
-
-    private String safeFieldSnapshotNoWait(By locator) {
-        try {
-            List<WebElement> matches = driver().findElements(locator);
-            if (matches.isEmpty()) {
-                return "NOT_PRESENT (screen likely transitioned)";
-            }
-            return matches.get(0).getText();
-        } catch (RuntimeException e) {
-            return "ERROR(" + e.getClass().getSimpleName() + ")";
-        }
-    }
-    // ===== END PHASE 19.4I TEMPORARY DIAGNOSTIC INSTRUMENTATION =====
 
     /** @return the Username field's current contents. */
     public String getUsernameFieldValue() {
