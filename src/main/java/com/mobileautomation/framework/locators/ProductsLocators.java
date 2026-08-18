@@ -82,6 +82,28 @@ public final class ProductsLocators {
     }
 
     /**
+     * The Product Card container element for the card whose Product Title
+     * text is exactly {@code productName} — the same whole-document,
+     * text-anchored XPath as {@link #productImageForCard(String)}/
+     * {@link #productPriceForCard(String)}, resolved one step short of a
+     * specific child. Added Phase 5 Lab 4: returns a scope (via
+     * {@code WaitUtility#waitForPresence(By)}) that a caller can then search
+     * within (e.g. {@code core.ElementActions#findWithin(WebElement, By)})
+     * for a descendant such as {@link #PRODUCT_PRICE}, instead of issuing a
+     * second independent whole-document query after an intervening scroll —
+     * see {@code ProductsPage#getCardPrice(String)} for why: a second
+     * whole-document query re-anchored on the same text can fail if that
+     * text has since scrolled out of the rendered RecyclerView window,
+     * whereas a container resolved once, immediately after the scroll,
+     * and then searched by presence (not visibility) tolerates the same
+     * "clipped but still rendered" state {@code scrollIntoView} already
+     * guarantees.
+     */
+    public static By productCard(String productName) {
+        return By.xpath("//*[@text=" + xpathLiteral(productName) + "]/parent::*");
+    }
+
+    /**
      * Quotes {@code value} for safe embedding as an XPath 1.0 string
      * literal — single-quoted normally, double-quoted if it contains a
      * single quote, or built via {@code concat()} if it contains both quote
