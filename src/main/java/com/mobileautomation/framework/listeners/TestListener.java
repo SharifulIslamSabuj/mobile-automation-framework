@@ -54,6 +54,20 @@ public class TestListener implements ITestListener {
     @Override
     public void onTestSkipped(ITestResult result) {
         LOGGER.warn("Test skipped: {}", result.getName());
+        // Phase N: without this, an ExtentTest node left with no explicit status (as every
+        // prior code path here did for a skip) renders as PASS in the Spark report — TestNG
+        // and Allure both correctly record SKIP/skipped (docs/allure/
+        // PHASE_M_GITHUB_ACTIONS_ALLURE_CI_VALIDATION_REPORT.md). getThrowable() is null for
+        // the common case (a skip cascading from a failed @BeforeMethod carries no throwable
+        // on the test's own ITestResult — confirmed from that run's raw Allure data), so this
+        // falls back to a message rather than risk passing a null Throwable to skip(Throwable).
+        if (ReportProvider.hasActiveTest()) {
+            if (result.getThrowable() != null) {
+                ReportProvider.getTest().skip(result.getThrowable());
+            } else {
+                ReportProvider.getTest().skip("Test skipped: " + result.getName());
+            }
+        }
         LOGGER.info("{} TEST END {}", DELIMITER, DELIMITER);
         ReportProvider.clearCurrentTest();
     }
