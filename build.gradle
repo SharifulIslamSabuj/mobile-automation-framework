@@ -1,5 +1,29 @@
 plugins {
     id 'java'
+    // Allure reporting (Reporting Enhancement phase). Official Gradle plugin,
+    // verified current at implementation time: requires Gradle 8.11+/Java 17+
+    // (both satisfied — Gradle 9.0.0, Java 17), auto-detects TestNG on the
+    // classpath and wires the adapter/report tasks (`allureReport`,
+    // `allureServe`) without a manually-maintained task definition.
+    id 'io.qameta.allure' version '4.1.0'
+}
+
+// Root-cause investigation (docs/allure/PHASE_C_ALLURE_SERVE_ZERO_RESULTS_ROOT_CAUSE_AND_FIX_REPORT.md)
+// proved that the default multi-file "Awesome" report output serves a browser
+// a page whose own embedded `window.allureReportOptions.id` expects its real
+// data under an `awesome/` subpath the plugin's bundled dev server does not
+// correctly route — the report always renders "0 results" in an actual
+// browser regardless of whether the underlying data is correct (confirmed via
+// direct HTTP fetch of the live-served summary.json vs. the on-disk file).
+// `singleFile` is the plugin's own documented option (allure-framework/allure-gradle
+// README, `allure { report { singleFile = true } }`) for producing one
+// self-contained HTML file with all data embedded inline — this removes the
+// separate-fetch/base-path mechanism the defect depends on entirely, rather
+// than working around a specific symptom of it.
+allure {
+    report {
+        singleFile = true
+    }
 }
 
 group = 'com.mobileautomation.framework'
@@ -76,6 +100,18 @@ dependencies {
     // any consumer of this framework needs TestNG on their classpath
     // regardless. See docs/framework/CROSS_CUTTING_INFRASTRUCTURE.md.
     implementation 'org.testng:testng:7.10.2'
+
+    // Allure reporting (Reporting Enhancement phase) — additive alongside
+    // ExtentReports (MA-FA-001 §15), not a replacement. The Gradle plugin's
+    // own TestNG auto-detection wires result-writing into the `test` task;
+    // this explicit dependency is still required (verified against the
+    // current official Allure TestNG/Gradle documentation) for `@Epic`,
+    // `@Feature`, `@Story`, `@Severity`, and `@Step` to be available at
+    // compile time. Declared via the official BOM so the annotation
+    // artifact's version always matches the adapter version the Gradle
+    // plugin resolves (2.35.2 at the time of this integration).
+    testImplementation platform('io.qameta.allure:allure-bom:2.35.3')
+    testImplementation 'io.qameta.allure:allure-testng'
 }
 
 test {
@@ -105,4 +141,36 @@ task printTestRuntimeClasspath {
     doLast {
         println sourceSets.test.runtimeClasspath.asPath
     }
+}
+
+// Standalone Allure CLI local reporting (Phase C-Correction —
+// docs/allure/PHASE_C_CORRECTION_STANDALONE_CLI_IMPLEMENTATION_REPORT.md).
+// Replaces `allureServe` for LOCAL use: that task was proven to serve a
+// generic "0 results" stub regardless of correct underlying data
+// (docs/allure/PHASE_C_ALLURE_SERVE_ZERO_RESULTS_ROOT_CAUSE_AND_FIX_REPORT.md).
+// The `io.qameta.allure` plugin and its `allureReport` task are deliberately
+// NOT removed and NOT reconfigured here — the (uncommitted) CI workflow's
+// `aggregate` job still calls `./gradlew allureReport` and uploads its
+// output as an artifact, and touching that is out of scope for this phase
+// (GitHub Actions is explicitly not to be modified here). This task uses the
+// separately-installed standalone Allure CLI (`allure --version`, confirmed
+// present) instead, which does not share the "Awesome" plugin's serving
+// defect.
+//
+// Deliberately generates only — does NOT also run `allure open`, since that
+// starts a long-lived local web server that would block this task (and the
+// Gradle daemon) indefinitely until manually killed. Run `allure open
+// build/allure-report` yourself afterward. Also deliberately does NOT run
+// tests first — kept composable so the report can be regenerated without
+// re-running the (slow, real-device) suite.
+tasks.register('allureLocalReport', Exec) {
+    group = 'reporting'
+    description = 'Generates a fresh Allure report from build/allure-results using the standalone Allure CLI (does not run tests, does not open a browser - run "allure open build/allure-report" afterward).'
+    doFirst {
+        def resultsDir = file('build/allure-results')
+        if (!resultsDir.isDirectory() || resultsDir.list().length == 0) {
+            throw new GradleException("build/allure-results is empty or missing — run './gradlew test' first.")
+        }
+    }
+    commandLine 'cmd', '/c', 'allure', 'generate', 'build/allure-results', '--clean', '-o', 'build/allure-report'
 }

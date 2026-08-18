@@ -38,6 +38,15 @@ public class TestListener implements ITestListener {
     public void onTestFailure(ITestResult result) {
         LOGGER.error("Test failed: {}", result.getName(), result.getThrowable());
         ScreenshotManager.captureScreenshot(result.getName() + "_failure");
+        // Phase D/E: CommonAssertions.evaluate() is the only other place that marks an
+        // ExtentTest failed, and it never runs for a failure raised outside an assertion
+        // (e.g. a raw ElementActionException from a Page Object call) — without this, such
+        // failures left the Extent node's status as whatever it last was on a PASS, even
+        // though TestNG and Allure both correctly recorded FAILURE/broken (docs/allure/
+        // PHASE_D_EXTENTREPORTS_FORENSIC_AUDIT_REPORT.md).
+        if (ReportProvider.hasActiveTest()) {
+            ReportProvider.getTest().fail(result.getThrowable());
+        }
         LOGGER.info("{} TEST END {}", DELIMITER, DELIMITER);
         ReportProvider.clearCurrentTest();
     }

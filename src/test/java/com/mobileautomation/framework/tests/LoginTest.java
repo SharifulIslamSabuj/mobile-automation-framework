@@ -7,6 +7,11 @@ import com.mobileautomation.framework.models.LoginCredentials;
 import com.mobileautomation.framework.pages.LoginPage;
 import com.mobileautomation.framework.pages.ProductsPage;
 import com.mobileautomation.framework.reporting.ScreenshotManager;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
 import org.testng.annotations.Test;
 
 /**
@@ -40,9 +45,13 @@ import org.testng.annotations.Test;
  * a secondary navigation check. Login logic, the framework, and Page Object
  * designs are unchanged; only this additional business verification was added.
  */
+@Epic("Authentication")
+@Feature("Login")
 public class LoginTest extends BaseTest {
 
     @Test(description = "TC-004 — Login Outcome Verification")
+    @Story("Valid Login")
+    @Severity(SeverityLevel.CRITICAL)
     public void loginOutcomeVerification() {
         ProductsPage productsPage = new ProductsPage();
         CommonAssertions.verifyVisible(productsPage.isDisplayed(), "Product Catalog screen (post-launch)");

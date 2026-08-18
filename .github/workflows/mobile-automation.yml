@@ -193,7 +193,7 @@ jobs:
             ./gradlew test --no-daemon -Denv=emulator -Dplatform.version="${ANDROID_PLATFORM_VERSION}" -Ddevice.name="${EMULATOR_DEVICE_NAME}" -Dapp.path="${APK_PATH}" > "${RUNNER_TEMP}/native-test.log" 2>&1; echo $? > "${RUNNER_TEMP}/native-exit-code.txt"; cat "${RUNNER_TEMP}/native-test.log"
 
             echo "Preserving native results..."
-            mkdir -p ci-results/native; cp -r build/test-results/test ci-results/native/test-results 2>/dev/null || true; cp -r build/reports/tests/test ci-results/native/gradle-report 2>/dev/null || true; cp -r reports ci-results/native/reports 2>/dev/null || true; cp -r logs ci-results/native/logs 2>/dev/null || true; echo "Native results preserved to ci-results/native/"
+            mkdir -p ci-results/native; cp -r build/test-results/test ci-results/native/test-results 2>/dev/null || true; cp -r build/reports/tests/test ci-results/native/gradle-report 2>/dev/null || true; cp -r reports ci-results/native/reports 2>/dev/null || true; cp -r logs ci-results/native/logs 2>/dev/null || true; cp -r build/allure-results ci-results/native/allure-results 2>/dev/null || true; echo "Native results preserved to ci-results/native/"
 
             echo "Restoring the real test exit code as this script's own outcome (this job's sole gate)..."
             NATIVE_EXIT=$(cat "${RUNNER_TEMP}/native-exit-code.txt" 2>/dev/null || echo 1); echo "NATIVE_TEST_EXIT=${NATIVE_EXIT}"; echo "native_exit=${NATIVE_EXIT}" >> "$GITHUB_ENV"; exit "${NATIVE_EXIT}"
@@ -209,6 +209,7 @@ jobs:
           echo "ci-results/native/:"; ls -la ci-results/native 2>/dev/null || echo "  not present"
           echo "ci-results/native/reports/screenshots/:"; ls -la ci-results/native/reports/screenshots 2>/dev/null || echo "  not present"
           echo "ci-results/native/test-results/:"; ls -la ci-results/native/test-results 2>/dev/null || echo "  not present"
+          echo "ci-results/native/allure-results/:"; ls -la ci-results/native/allure-results 2>/dev/null || echo "  not present"
 
       # ---------------------------------------------------------------------
       # Artifact Upload (Phase 17.2B Decision 4) — uploaded unconditionally
@@ -225,6 +226,27 @@ jobs:
             ci-results/native/logs
             ci-results/native/gradle-report
             ci-results/native/test-results
+          if-no-files-found: warn
+          retention-days: 90
+
+      # ---------------------------------------------------------------------
+      # Allure Raw Results Upload (Phase C — GitHub Actions + Allure CI
+      # Integration). Uploaded as its own dedicated artifact, separate from
+      # the evidence bundle above, so the aggregate job can download just the
+      # Allure data (small — no screenshots/HTML duplicated here) and merge
+      # it with docker-tests' own Allure results into one combined report.
+      # Unconditional (pass or fail), matching the existing artifact-upload
+      # policy (MA-CICD-001 §11). Produced automatically by the existing
+      # `io.qameta.allure` Gradle plugin already wired into the `test` task
+      # (Reporting Enhancement phase, docs/allure/) — no new test-execution
+      # step was added to produce this.
+      # ---------------------------------------------------------------------
+      - name: Upload Native Allure Results
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: allure-results-native-${{ github.run_number }}
+          path: ci-results/native/allure-results
           if-no-files-found: warn
           retention-days: 90
 
@@ -347,7 +369,7 @@ jobs:
             docker run --rm --network=host --user "$(id -u):$(id -g)" -v "${GITHUB_WORKSPACE}:/workspace" -v "${RUNNER_TEMP}/docker-gradle-home:/tmp/gradle-home" -e "GRADLE_USER_HOME=/tmp/gradle-home" -w /workspace mobile-automation-harness:ci ./gradlew test --no-daemon -Denv=emulator -Dplatform.version="${ANDROID_PLATFORM_VERSION}" -Ddevice.name="${EMULATOR_DEVICE_NAME}" -Dapp.path="${APK_PATH}" > "${RUNNER_TEMP}/docker-test.log" 2>&1; echo $? > "${RUNNER_TEMP}/docker-exit-code.txt"; cat "${RUNNER_TEMP}/docker-test.log"
 
             echo "Preserving Docker results..."
-            mkdir -p ci-results/docker; cp -r build/test-results/test ci-results/docker/test-results 2>/dev/null || true; cp -r build/reports/tests/test ci-results/docker/gradle-report 2>/dev/null || true; cp -r reports ci-results/docker/reports 2>/dev/null || true; cp -r logs ci-results/docker/logs 2>/dev/null || true; echo "Docker results preserved to ci-results/docker/"
+            mkdir -p ci-results/docker; cp -r build/test-results/test ci-results/docker/test-results 2>/dev/null || true; cp -r build/reports/tests/test ci-results/docker/gradle-report 2>/dev/null || true; cp -r reports ci-results/docker/reports 2>/dev/null || true; cp -r logs ci-results/docker/logs 2>/dev/null || true; cp -r build/allure-results ci-results/docker/allure-results 2>/dev/null || true; echo "Docker results preserved to ci-results/docker/"
 
             echo "Restoring the real test exit code as this script's own outcome..."
             DOCKER_EXIT=$(cat "${RUNNER_TEMP}/docker-exit-code.txt" 2>/dev/null || echo 1); echo "DOCKER_TEST_EXIT=${DOCKER_EXIT}"; echo "docker_exit=${DOCKER_EXIT}" >> "$GITHUB_ENV"; exit "${DOCKER_EXIT}"
@@ -358,6 +380,7 @@ jobs:
           echo "ci-results/docker/:"; ls -la ci-results/docker 2>/dev/null || echo "  not present"
           echo "ci-results/docker/reports/screenshots/:"; ls -la ci-results/docker/reports/screenshots 2>/dev/null || echo "  not present"
           echo "ci-results/docker/test-results/:"; ls -la ci-results/docker/test-results 2>/dev/null || echo "  not present"
+          echo "ci-results/docker/allure-results/:"; ls -la ci-results/docker/allure-results 2>/dev/null || echo "  not present"
 
       - name: Upload Docker Artifacts
         if: always()
@@ -369,6 +392,22 @@ jobs:
             ci-results/docker/logs
             ci-results/docker/gradle-report
             ci-results/docker/test-results
+          if-no-files-found: warn
+          retention-days: 90
+
+      # ---------------------------------------------------------------------
+      # Allure Raw Results Upload (Phase C) — mirrors native-tests' own
+      # dedicated Allure artifact above; see that step's comment for the full
+      # rationale. This is Docker's (Model 3) own container-produced
+      # `build/allure-results`, reached via the same host bind mount already
+      # used to retrieve its JUnit XML/ExtentReports evidence above.
+      # ---------------------------------------------------------------------
+      - name: Upload Docker Allure Results
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: allure-results-docker-${{ github.run_number }}
+          path: ci-results/docker/allure-results
           if-no-files-found: warn
           retention-days: 90
 
@@ -417,6 +456,92 @@ jobs:
           echo "Native quality gate passed. Docker result (${DOCKER_STATUS}) is reported above and in the uploaded artifacts for full visibility, and does not block the workflow (approved non-blocking policy, Phase 19.5C / Phase 19)."
           exit 0
 
+      # ---------------------------------------------------------------------
+      # Allure Combined Report Generation (Phase C — GitHub Actions + Allure
+      # CI Integration). Merges native-tests' and docker-tests' raw Allure
+      # results (uploaded above as their own dedicated artifacts) into one
+      # combined report, using the project's existing, unmodified Allure
+      # Gradle configuration (build.gradle, allure.properties — Reporting
+      # Enhancement phase / Phase B, docs/allure/). Every step below is
+      # `if: always()` (so a report is still produced even when native
+      # failed — partial evidence is still valuable) and
+      # `continue-on-error: true`: this is reporting, not a quality gate,
+      # and the gate was already decided by the step above. A failure in any
+      # step here must never flip this job's own conclusion away from what
+      # "Determine Final Workflow Result" already established — the same
+      # principle this workflow already applies to Docker's non-blocking
+      # result, applied here at step level since only this portion of the
+      # aggregate job is non-gating.
+      # ---------------------------------------------------------------------
+      - name: Checkout Repository
+        if: always()
+        continue-on-error: true
+        uses: actions/checkout@v7.0.1
+
+      - name: Set Up JDK 17
+        if: always()
+        continue-on-error: true
+        uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set Up Gradle
+        if: always()
+        continue-on-error: true
+        uses: gradle/actions/setup-gradle@v6.3.0
+
+      - name: Download Native Allure Results
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: allure-results-native-${{ github.run_number }}
+          path: allure-raw/native
+
+      - name: Download Docker Allure Results
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: allure-results-docker-${{ github.run_number }}
+          path: allure-raw/docker
+
+      - name: Merge Allure Results
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p build/allure-results
+          cp -r allure-raw/native/. build/allure-results/ 2>/dev/null || true
+          cp -r allure-raw/docker/. build/allure-results/ 2>/dev/null || true
+          echo "Merged Allure result file count: $(find build/allure-results -type f 2>/dev/null | wc -l)"
+
+      - name: Generate Allure Report
+        if: always()
+        continue-on-error: true
+        # Defensive clean of the report's own output directory before
+        # generating: Phase B's local validation proved the Allure Gradle
+        # plugin's `allureReport` task does not clear its output directory
+        # before writing, which can leave stale content behind on a
+        # persistent filesystem. GitHub Actions runners are ephemeral so
+        # this cannot actually occur here (no prior run's output exists to
+        # begin with), but the `rm -rf` is free and keeps this step correct
+        # even if that assumption ever changes (e.g. a future self-hosted
+        # runner with a persistent workspace).
+        run: |
+          rm -rf build/reports/allure-report
+          ./gradlew allureReport --no-daemon
+
+      - name: Upload Allure Report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: allure-report-${{ github.run_number }}
+          path: build/reports/allure-report/allureReport
+          if-no-files-found: warn
+          retention-days: 90
+
       - name: Publish Workflow Summary
         if: always()
         run: |
@@ -437,4 +562,6 @@ jobs:
             echo "Native and Docker executed as independent, concurrent GitHub Actions jobs on separate runners, each provisioning its own Android emulator and Appium server (Phase 19 — True Parallel Execution; docs/docker/PHASE_19_TRUE_PARALLEL_EXECUTION_IMPLEMENTATION_REPORT.md)."
             echo ""
             echo "Full ExtentReports HTML, the Gradle test report, execution logs, and failure screenshots for the **native** path are attached as \`mobile-automation-run-${{ github.run_number }}\`; the **Docker** path's equivalent evidence is attached as \`mobile-automation-docker-run-${{ github.run_number }}\`."
+            echo ""
+            echo "A combined Allure report (Native + Docker results merged) is attached as \`allure-report-${{ github.run_number }}\`, generated from this project's existing Allure integration (Reporting Enhancement phase, docs/allure/) — additive to, and never a replacement for, the ExtentReports evidence above. Report generation is diagnostic only and never affects this workflow's pass/fail result."
           } >> "$GITHUB_STEP_SUMMARY"

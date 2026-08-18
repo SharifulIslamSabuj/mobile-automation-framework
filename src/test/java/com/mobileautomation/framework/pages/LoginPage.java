@@ -3,6 +3,7 @@ package com.mobileautomation.framework.pages;
 import com.mobileautomation.framework.core.BasePage;
 import com.mobileautomation.framework.exceptions.ElementActionException;
 import com.mobileautomation.framework.locators.LoginLocators;
+import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 
 /**
@@ -29,23 +30,27 @@ import org.openqa.selenium.By;
 public class LoginPage extends BasePage {
 
     /** Clears and re-enters the Username field. */
+    @Step("Enter username: {username}")
     public void enterUsername(String username) {
         elementActions.clear(LoginLocators.USERNAME_FIELD);
         elementActions.type(LoginLocators.USERNAME_FIELD, username);
     }
 
     /** Clears and re-enters the Password field. */
+    @Step("Enter password")
     public void enterPassword(String password) {
         elementActions.clear(LoginLocators.PASSWORD_FIELD);
         elementActions.type(LoginLocators.PASSWORD_FIELD, password);
     }
 
     /** Taps the Login button. */
+    @Step("Tap Login button")
     public void tapLogin() {
         elementActions.click(LoginLocators.LOGIN_BUTTON);
     }
 
     /** Enters both fields and submits the form — composes {@link #enterUsername}, {@link #enterPassword}, {@link #tapLogin}. */
+    @Step("Log in with username: {username}")
     public void login(String username, String password) {
         enterUsername(username);
         enterPassword(password);

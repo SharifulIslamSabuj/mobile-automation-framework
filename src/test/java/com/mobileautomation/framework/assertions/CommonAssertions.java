@@ -6,6 +6,8 @@ import com.mobileautomation.framework.logging.LogManager;
 import com.mobileautomation.framework.reporting.ReportProvider;
 import com.mobileautomation.framework.reporting.ScreenshotManager;
 import org.slf4j.Logger;
+import io.qameta.allure.Allure;
+import io.qameta.allure.model.Status;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -67,6 +69,7 @@ public final class CommonAssertions {
             if (ReportProvider.hasActiveTest()) {
                 ReportProvider.getTest().pass(message);
             }
+            Allure.step(message, Status.PASSED);
             return;
         }
 
@@ -80,6 +83,7 @@ public final class CommonAssertions {
                 test.fail(message);
             }
         }
+        Allure.step(message, Status.FAILED);
         throw new AssertionError(message);
     }
 }
