@@ -13,7 +13,7 @@
 [![Appium](https://img.shields.io/badge/Appium-Java%20Client%209.4.0-6529A6)](#6-technology-stack)
 [![TestNG](https://img.shields.io/badge/TestNG-7.10.2-2E7D32)](#6-technology-stack)
 [![Docker](https://img.shields.io/badge/Docker-execution%20layer-2496ED)](#9-docker-architecture)
-[![License](https://img.shields.io/badge/license-not%20yet%20declared-9E9E9E)](#24-license)
+[![License](https://img.shields.io/badge/license-MIT%20License-9E9E9E)](#24-license)
 
 </div>
 
@@ -589,7 +589,7 @@ This is currently a single-maintainer project (Section 25). There is no formal e
 
 ## 24. License
 
-No `LICENSE` file currently exists in this repository. This project is intended to be released under the MIT License.
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
