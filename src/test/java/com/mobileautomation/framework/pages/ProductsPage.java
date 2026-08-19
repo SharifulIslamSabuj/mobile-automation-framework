@@ -5,7 +5,6 @@ import com.mobileautomation.framework.exceptions.ElementActionException;
 import com.mobileautomation.framework.locators.NavigationDrawerLocators;
 import com.mobileautomation.framework.locators.ProductsLocators;
 import com.mobileautomation.framework.utils.ScrollUtility;
-import com.mobileautomation.framework.utils.WaitUtility;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
@@ -128,44 +127,41 @@ public class ProductsPage extends BasePage {
 
     /**
      * @return the Product Price displayed on the card whose Product Title
-     * text is exactly {@code productName}.
+     * text is exactly {@code productName} — resolved via
+     * {@link ProductsLocators#productPriceForCard(String)}, a single
+     * whole-document XPath anchored on that exact text (Phase 9.5C/D fix).
+     * Replaces the Phase 9.5B parent-child-traversal approach, which a live
+     * diagnostic proved unsound: Appium's UiAutomator2 driver does not
+     * support upward (parent/sibling-axis) traversal in a scoped/nested
+     * find — only the whole-document form works.
      * <p>
-     * History: Phase 9.5C/D resolved the price via a second whole-document
-     * XPath ({@link ProductsLocators#productPriceForCard(String)}) requiring
-     * pixel <em>visibility</em>. Phase 17.6E found {@link #verifyProductCardExists(String)}'s
-     * own scroll only guarantees the name text meets {@code scrollIntoView}'s
-     * minimal criterion, not that the price line beneath it is visible — an
-     * undershoot. Phase 17.6H's fix (an unconditional {@link ScrollUtility#scrollDown()}
-     * before the second query) traded that for the opposite failure: a live
-     * Phase 5 Lab 4 diagnostic (real-device page source captured at the
-     * moment of failure) proved this unconditional scroll can move the
-     * target card's own name text out of the rendered RecyclerView window
-     * entirely, leaving the re-anchored second query nothing to match.
-     * <p>
-     * Current approach (Phase 5 Lab 4): resolve the card's container once,
-     * immediately after the single existing {@link #scrollToProduct(String)}
-     * call, via {@link ProductsLocators#productCard(String)} and
-     * {@code WaitUtility#waitForPresence(By)} — presence, not visibility, so
-     * the same "clipped but still rendered" state that caused the original
-     * undershoot no longer needs a second scroll to work around. The price
-     * is then read as a descendant of that already-resolved container via
-     * {@code core.ElementActions#findWithin(WebElement, By)} (Phase 9.5B,
-     * previously unused here) — no second whole-document query, no
-     * additional scroll, and no dependency on the target text still being
-     * present anywhere else in the hierarchy at read time.
-     *
-     * @throws ElementActionException if no card matching {@code productName} can be found
+     * Scrolls one page forward before reading the price only if needed —
+     * Phase 17.6E found {@link #verifyProductCardExists(String)}'s own
+     * scroll only guarantees the name text meets
+     * {@code UiScrollable.scrollIntoView}'s minimal visibility criterion,
+     * not that the price line beneath it in the same card is visible; Phase
+     * 17.6G found re-calling that same criteria-based scroll (the original
+     * fix attempt) is consequently a no-op. Phase 17.6H's fix
+     * ({@link ScrollUtility#scrollDown()}, called unconditionally) traded
+     * that for the opposite failure: an unconditional forward scroll can
+     * move the viewport past a price line that {@code scrollIntoView}
+     * already brought into view, taking the whole card off-screen (Phase
+     * AF real-device evidence, confirmed via captured page source showing
+     * a different, unrelated pair of cards on screen at query time). This
+     * implementation only performs that forward scroll when the price for
+     * this specific card is not already visible, so the already-satisfied
+     * common case is never disturbed. There is no unique locator to scroll
+     * to directly for a specific card's price (its content-desc is shared
+     * by every card), so the check re-uses the same name-anchored XPath
+     * {@link #getCardPrice(String)} ultimately reads from.
      */
     public String getCardPrice(String productName) {
         scrollToProduct(productName);
-        WebElement card;
-        try {
-            card = WaitUtility.waitForPresence(ProductsLocators.productCard(productName));
-        } catch (RuntimeException e) {
-            throw new ElementActionException(
-                    "Product card not found for '" + productName + "' while resolving its price.", e);
+        By priceLocator = ProductsLocators.productPriceForCard(productName);
+        if (!elementActions.isDisplayed(priceLocator)) {
+            ScrollUtility.scrollDown();
         }
-        return elementActions.findWithin(card, ProductsLocators.PRODUCT_PRICE).getText();
+        return elementActions.getText(priceLocator);
     }
 
     /**
