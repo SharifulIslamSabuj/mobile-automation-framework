@@ -6,7 +6,7 @@
 
 **A scalable Java + Appium mobile automation framework engineered for maintainability, CI/CD integration, containerized execution, and true parallel test execution.**
 
-[![Release](https://img.shields.io/badge/release-v1.3.0-2C3E50)](#20-release-history)
+[![Release](https://img.shields.io/badge/release-v1.4.0-2C3E50)](#20-release-history)
 [![CI](https://github.com/SharifulIslamSabuj/mobile-automation-framework/actions/workflows/mobile-automation.yml/badge.svg)](https://github.com/SharifulIslamSabuj/mobile-automation-framework/actions/workflows/mobile-automation.yml)
 [![Java](https://img.shields.io/badge/Java-17-E76F00)](#6-technology-stack)
 [![Gradle](https://img.shields.io/badge/Gradle-9.0.0-02303A)](#6-technology-stack)
@@ -41,7 +41,7 @@ What distinguishes this repository from a typical automation project isn't a sin
 - **Execution isolation** — the native and Docker paths run on separate GitHub-hosted runners, each with its own Android emulator and Appium server; neither shares state with the other.
 - **True parallel CI execution** — native and Docker jobs are scheduled with no dependency between them, confirmed to overlap in wall-clock time using real GitHub Actions job timestamps, not assumed from job structure alone (Section 10).
 - **Result aggregation with an unweakened quality gate** — a dedicated `aggregate` job combines both results; the native path remains the sole authoritative pass/fail signal, and a Docker-side failure is always reported, never hidden or silently converted into a pass.
-- **Artifact preservation** — JUnit XML, ExtentReports HTML, screenshots, and logs are captured and uploaded independently for both execution paths on every run, pass or fail.
+- **Artifact preservation** — JUnit XML, ExtentReports HTML, Allure results/report, screenshots, and logs are captured and uploaded independently for both execution paths on every run, pass or fail.
 
 This is evidence-based language, not a claim of universal reliability. Section 19 states plainly what is *not* yet true of this project.
 
@@ -51,27 +51,21 @@ This is evidence-based language, not a claim of universal reliability. Section 1
 
 <div align="center">
 
-## v1.3.0 — Scalable Execution Release
-### Main Feature: True Parallel Native + Docker Execution
+## v1.4.0 — Advanced Test Reporting & Quality Validation
+### Main Feature: Allure Reporting Integration + ExtentReports Correctness Fixes
 
 </div>
 
-v1.3.0 converts the CI pipeline from sequential dual-path execution (Phase 19.5) into genuine concurrent execution (Phase 19). The production workflow now runs as three independent GitHub Actions jobs:
+v1.4.0 builds on v1.3.0's scalable Native + Docker execution (Section 5.2, Section 10) by adding a second, independently generated reporting system alongside ExtentReports, and by correcting two ExtentReports status-accuracy defects. The execution architecture itself — native/Docker parallel jobs, the native-authoritative quality gate — is unchanged from v1.3.0; this release is scoped entirely to reporting.
 
-| | |
-|---|---|
-| **`native-tests`** | Provisions its own Android emulator and Appium server on its own GitHub-hosted runner; runs the full 19-test suite directly on the host |
-| **`docker-tests`** | Provisions its own, separate Android emulator and Appium server on its own runner; runs the identical suite inside a Docker container that reaches that runner's Appium server over `--network=host` |
-| **`aggregate`** | Waits for both jobs (`needs: [native-tests, docker-tests]`, `if: always()`), reads each job's real, independently captured exit code, and determines the workflow's final result |
+Highlights, each independently evidenced by committed code and GitHub Actions Run #61 (GREEN):
 
-Highlights, each independently evidenced by real GitHub Actions runs (Section 10):
-
-- Native and Docker execute as **independent jobs with no dependency between them** — this is the mechanism that allows them to run concurrently rather than one after the other.
-- **Separate GitHub-hosted runners**, each with its **own Android emulator** and **own Appium server instance** — no shared emulator, no shared Appium server, no shared ADB environment.
-- **Direct, timestamp-proven concurrent execution** — confirmed across three independent production runs, not inferred from the workflow's structure.
-- **Independently captured results and independent artifacts** for each path (`mobile-automation-run-*` and `mobile-automation-docker-run-*`).
-- **Native remains the sole, authoritative blocking quality gate.** Docker's result is always visible — in its own job log, its own artifact, and the aggregate summary — and never silently hidden or converted into a pass.
-- **Measured CI wall-clock improvement** from running concurrently instead of sequentially (Section 11).
+- **Allure integrated into the build and CI pipeline** — the `io.qameta.allure` Gradle plugin, `allure-testng`, and `allure-bom` are wired into `build.gradle`; both `native-tests` and `docker-tests` upload their own Allure raw results, and a dedicated step merges them and generates one combined Allure report as a CI artifact, on every run.
+- **Allure test steps across the full suite** — every `CommonAssertions` call reports as an Allure step with a PASSED/FAILED status, so step-level detail exists for all 19 tests, not a subset.
+- **Allure test metadata — partial, not suite-wide.** `LoginTest` carries `@Epic`/`@Feature`/`@Story`/`@Severity` annotations; `CartTest`, `NavigationTest`, and `ProductDetailsTest` do not yet carry this metadata.
+- **ExtentReports failure-status correctness** — a test that fails outside a `CommonAssertions` call (e.g. a raw `ElementActionException` from a Page Object) is now correctly marked failed in the Extent report, rather than left showing its last passing status.
+- **ExtentReports skipped-status correctness** — a test skipped by a failed `@BeforeMethod` is now correctly marked skipped in the Extent report, rather than rendered as a false pass.
+- **Cross-report validation, not assumed agreement** — GitHub Actions Run #61 confirmed TestNG (Native 19/19, Docker 19/19), Allure (19 total, 19 passed, 0 failed/broken/skipped), and ExtentReports (19/19 `pass` on both paths) all independently report the same outcome for the same run (Section 13).
 
 ---
 
@@ -88,11 +82,11 @@ Highlights, each independently evidenced by real GitHub Actions runs (Section 10
 | True parallel Native + Docker CI execution | Implemented |
 | Independent per-path artifact capture and reporting | Implemented |
 | Native-authoritative, Docker-non-blocking quality gate | Implemented |
-| Jenkins pipeline | Planned (v1.4.0) |
-| Azure DevOps pipeline | Planned (v1.5.0) |
-| Selenium/Appium Grid | Planned (v1.6.0) |
-| BrowserStack integration | Planned (v1.7.0) |
-| Allure reporting | Planned (v1.8.0) |
+| Allure reporting (build + CI integration, test steps, partial metadata) | Implemented |
+| Jenkins pipeline | Planned (v1.5.0) |
+| Azure DevOps pipeline | Planned (v1.6.0) |
+| Selenium/Appium Grid | Planned (v1.7.0) |
+| BrowserStack integration | Planned (v1.8.0) |
 | Sauce Labs cloud execution | Planned (v1.9.0) |
 | iOS support | Planned (v2.0.0) |
 
@@ -182,6 +176,7 @@ flowchart TD
 | WebDriver Protocol | Selenium Java 4.25.0 |
 | Test Runner | TestNG 7.10.2 |
 | Reporting | ExtentReports 5.1.1 |
+| Reporting (secondary) | Allure (`io.qameta.allure` Gradle plugin 4.1.0, `allure-testng`, `allure-bom` 2.35.3) |
 | Logging | SLF4J 2.0.16 + Log4j2 2.24.1 |
 | Configuration | Java Properties, tiered resolution |
 | Test Data | JSON / YAML / Properties via Jackson 2.18.0 |
@@ -193,7 +188,7 @@ flowchart TD
 | Dependency Management | Gradle |
 | Version Control | Git / GitHub |
 
-Allure, Selenium/Appium Grid, BrowserStack, and Sauce Labs are **not** part of the current technology stack — they are roadmap items (Section 21).
+Selenium/Appium Grid, BrowserStack, and Sauce Labs are **not** part of the current technology stack — they are roadmap items (Section 21).
 
 ---
 
@@ -203,7 +198,7 @@ Allure, Selenium/Appium Grid, BrowserStack, and Sauce Labs are **not** part of t
 - **Automation tool:** Appium (UiAutomator2 driver) via Selenium WebDriver protocol
 - **Language / runner:** Java 17, TestNG 7.10.2
 - **Design pattern:** Page Object Model, one class per AUT screen
-- **Reporting:** ExtentReports (HTML) with automatic failure screenshots; structured logs via SLF4J/Log4j2
+- **Reporting:** ExtentReports (HTML) with automatic failure screenshots, plus Allure step-level reporting generated for every run (Section 13); structured logs via SLF4J/Log4j2
 - **Test data:** External JSON/YAML/Properties, resolved through one environment-aware interface
 - **Execution strategy:** `ISOLATED` (AUT state reset per test method, used in CI) and `FAST` (state reuse, local debugging only)
 
@@ -302,28 +297,34 @@ The Phase 19 implementation validation run measured a wall-clock improvement of 
 
 ## 13. Reporting & Artifacts
 
-This framework produces execution evidence at runtime, both locally and in CI:
+This framework produces execution evidence at runtime, both locally and in CI, through two independently generated reporting systems — ExtentReports and Allure — alongside JUnit XML, screenshots, and structured logs.
 
 | Artifact | Generated By | Location |
 |---|---|---|
 | HTML execution report | ExtentReports | `reports/` (local) — uploaded as part of CI artifacts |
+| Allure raw results | Allure (`io.qameta.allure` Gradle plugin, wired into the `test` task) | `build/allure-results/` (local and CI) |
+| Allure HTML report | `allureReport` Gradle task (CI) / standalone Allure CLI via the `allureLocalReport` task (local) | `build/reports/allure-report/allureReport/` (CI, Native+Docker merged) / `build/allure-report/` (local) |
 | Failure screenshots | `ScreenshotManager` | `reports/screenshots/` |
 | Structured execution logs | SLF4J + Log4j2 | `logs/` |
 | JUnit XML | Gradle/TestNG | `build/test-results/test/` |
 
-**Locally**, none of these are committed to the repository — `reports/`, `logs/`, and `screenshots/` are runtime output, excluded via `.gitignore` and regenerated on every run.
+**Locally**, none of these are committed to the repository — `reports/`, `logs/`, `screenshots/`, and `build/` are runtime output, excluded via `.gitignore` and regenerated on every run.
 
 **In CI**, both execution paths upload their own independent, non-overlapping artifact bundle on every run, pass or fail, via `actions/upload-artifact`:
 
 | Path | Artifact Name |
 |---|---|
 | Native | `mobile-automation-run-<run-number>` |
+| Native — Allure raw results | `allure-results-native-<run-number>` |
 | Docker | `mobile-automation-docker-run-<run-number>` |
+| Docker — Allure raw results | `allure-results-docker-<run-number>` |
+| Combined Allure report (Native + Docker merged) | `allure-report-<run-number>` |
 
-Neither path's artifact ever overwrites the other's — verified directly in the Phase 19 validation evidence (Section 10), not merely asserted by the workflow's design.
+Neither execution path's artifact ever overwrites the other's — verified directly in the Phase 19 validation evidence (Section 10), not merely asserted by the workflow's design. Allure report generation is additive to ExtentReports, never a replacement, and is diagnostic only — it never affects the workflow's pass/fail result (Section 12 remains the sole authority on that).
 
-**CURRENT:** ExtentReports HTML, JUnit XML, failure screenshots, and structured logs — captured independently for both the native and Docker paths.
-**PLANNED:** Allure reporting (v1.8.0) — not implemented today.
+**Reporting consistency validation:** GitHub Actions Run #61 confirmed all independently generated result signals agree on the same outcome for the same run — TestNG (Native 19/19, Docker 19/19), Allure (19 total, 19 passed, 0 failed/broken/skipped), and ExtentReports (19/19 `pass` on both paths).
+
+**CURRENT:** ExtentReports HTML, Allure raw results and combined report, JUnit XML, failure screenshots, and structured logs — captured independently for both the native and Docker paths.
 
 ---
 
@@ -338,6 +339,7 @@ Practices actually evidenced by this repository's implementation and CI history:
 - **Containerized execution** — an independently reproducible Docker test-execution layer.
 - **True parallel execution** — independently scheduled, concurrently overlapping CI jobs (Section 10).
 - **Independent result handling and artifact preservation** — separate, never-overwriting artifacts for each execution path, uploaded pass or fail.
+- **Cross-report validation** — TestNG, Allure, and ExtentReports are confirmed to agree on the same outcome for the same CI run (Section 13), not assumed consistent by design.
 - **Explicit failure classification discipline** — production failures are classified using a defined evidence standard (`VERIFIED` / `INFERRED` / `NOT VERIFIED` / `UNKNOWN`) rather than assumed; see Section 19.
 - **Explicit, unweakened quality gates** — the native path's pass/fail status is never silently overridden by another path's result.
 - **Controlled release/versioning** — annotated Git tags for each release, with evidence documents committed alongside the code they describe.
@@ -350,7 +352,8 @@ Practices actually evidenced by this repository's implementation and CI history:
 mobile-automation-framework/
 ├── docs/                          — Enterprise documentation (governance through test design)
 │   ├── ci/                        — GitHub Actions CI/CD architecture, decisions, and verification (25 docs)
-│   └── docker/                    — Docker architecture, parallel execution design/implementation evidence (30 docs)
+│   ├── docker/                    — Docker architecture, parallel execution design/implementation evidence (30 docs)
+│   └── allure/                    — Allure/ExtentReports reporting implementation and validation evidence (19 docs)
 ├── src/
 │   ├── main/java/.../framework/   — config, driver, locators, components, core, utils, data, models, reporting, logging, listeners, exceptions
 │   └── test/
@@ -429,7 +432,7 @@ A governing document set authored ahead of implementation and independently froz
 | [Test Data Design Specification](docs/08-test-design/MA-TDD-001_Test-Data-Design-Specification_v1.0.md) | MA-TDD-001 | v1.6 | Test data sources, formats, automation file mapping |
 | [Locator Repository](docs/automation/LOCATOR_REPOSITORY.md) | MA-LOC-001 | v1.1 | Centralized, AUT-source-verified element locators |
 
-All five were subjected to a whole-project consistency audit, a reconciliation pass, and an independent final re-verification, and were approved as an internally consistent, traceable baseline. The wider documentation set — governance, vision and scope, AUT analysis, test strategy, framework architecture, environment and tooling, test planning, execution and reporting, risk management, and glossary — lives under [`docs/`](docs/) (79 markdown documents in total, including 25 CI/CD documents under [`docs/ci/`](docs/ci/) and 30 Docker/parallel-execution documents under [`docs/docker/`](docs/docker/)).
+All five were subjected to a whole-project consistency audit, a reconciliation pass, and an independent final re-verification, and were approved as an internally consistent, traceable baseline. The wider documentation set — governance, vision and scope, AUT analysis, test strategy, framework architecture, environment and tooling, test planning, execution and reporting, risk management, and glossary — lives under [`docs/`](docs/) (98 markdown documents in total, including 25 CI/CD documents under [`docs/ci/`](docs/ci/), 30 Docker/parallel-execution documents under [`docs/docker/`](docs/docker/), and 19 Allure/ExtentReports reporting documents under [`docs/allure/`](docs/allure/)).
 
 ---
 
@@ -497,7 +500,6 @@ Docker provides the **test execution layer** only. The Android emulator, ADB, an
 | iOS support | Not implemented — Android only |
 | Jenkins | Not integrated |
 | Azure DevOps | Not integrated |
-| Allure reporting | Not implemented — ExtentReports only |
 | Docker as primary/blocking gate | Not adopted — Docker remains independently observable and non-blocking by design (Section 12); this is an explicitly deferred decision, not an oversight |
 | Rollback drill | The rollback path from v1.3.0's parallel architecture back to sequential execution is structurally simple (single-file diff) but has not been empirically drilled |
 | Test coverage | 12 of 32 documented test cases remain manual; 1 is explicitly deferred |
@@ -515,11 +517,11 @@ Docker provides the **test execution layer** only. The Android emulator, ADB, an
 | v1.1.0 | CI/CD Release | GitHub Actions CI/CD, reproducibly green 19/19 baseline | Released |
 | — | *(Docker execution layer)* | Docker test-execution image and CI integration (Phase 19.1–19.5) — delivered as part of v1.3.0 below; **no separate `v1.2.0` tag exists in this repository** | Delivered within v1.3.0 |
 | v1.3.0 | Scalable Execution Release | True Parallel Native + Docker Execution | Released |
-| v1.4.0 | Enterprise CI Release | Jenkins Pipeline | Planned |
-| v1.5.0 | Enterprise DevOps Release | Azure DevOps Pipeline | Planned |
-| v1.6.0 | Distributed Execution Release | Selenium/Appium Grid | Planned |
-| v1.7.0 | Cloud Execution Release | BrowserStack | Planned |
-| v1.8.0 | Reporting Enhancement | Allure Reports | Planned |
+| v1.4.0 | Advanced Test Reporting & Quality Validation | Allure + ExtentReports + CI validation | Released |
+| v1.5.0 | Enterprise CI Release | Jenkins Pipeline | Planned |
+| v1.6.0 | Enterprise DevOps Release | Azure DevOps Pipeline | Planned |
+| v1.7.0 | Distributed Execution Release | Selenium/Appium Grid | Planned |
+| v1.8.0 | Cloud Execution Release | BrowserStack | Planned |
 | v1.9.0 | Multi-Cloud Release | Sauce Labs | Planned |
 | v2.0.0 | Cross-Platform Release | iOS Support | Planned |
 
@@ -535,27 +537,27 @@ The version sequence intentionally skips a standalone `v1.2.0` tag: Docker execu
 | Docker Test Execution Layer | 2026-08-10 | Docker Model 3 architecture designed and implemented (`docs/docker/PHASE_19.1*`–`PHASE_19.3*`), integrated into production CI as a parallel, non-blocking validation path (Phase 19.5) |
 | AUT Reliability Investigation | 2026-08-10–11 | Intermittent third-party AUT limitation investigated across Phase 19.4A–19.4P; formally classified, bounded, and accepted (Option A) without patching or replacing the AUT |
 | True Parallel Execution (v1.3.0) | 2026-08-11–12 | Production workflow converted to independent, concurrently-scheduled `native-tests`/`docker-tests`/`aggregate` jobs; verified across three production runs with direct timestamp evidence; released as v1.3.0 |
+| Advanced Test Reporting & Quality Validation (v1.4.0) | 2026-08-19 | Allure integrated into the build and CI pipeline (Gradle plugin, Allure steps via `CommonAssertions`, per-path raw-result upload, combined report generation); ExtentReports failure- and skipped-status accuracy corrected; TestNG, Allure, and ExtentReports cross-validated in agreement on GitHub Actions Run #61 (Native 19/19, Docker 19/19); released as v1.4.0 |
 
 ---
 
 ## 21. Roadmap
 
-**Completed:** `v1.0.0` → `v1.1.0` → `v1.3.0` *(Docker delivered within v1.3.0 — see Section 20)*
+**Completed:** `v1.0.0` → `v1.1.0` → `v1.3.0` → `v1.4.0` *(Docker delivered within v1.3.0 — see Section 20)*
 
-**Next:** `v1.4.0` — Jenkins Pipeline Integration
+**Next:** `v1.5.0` — Jenkins Pipeline Integration
 
 **Future:**
 
 | Release | Feature |
 |:---:|---|
-| v1.5.0 | Azure DevOps Pipeline |
-| v1.6.0 | Selenium/Appium Grid |
-| v1.7.0 | BrowserStack Integration |
-| v1.8.0 | Allure Reports |
+| v1.6.0 | Azure DevOps Pipeline |
+| v1.7.0 | Selenium/Appium Grid |
+| v1.8.0 | BrowserStack Integration |
 | v1.9.0 | Sauce Labs Integration |
 | v2.0.0 | iOS Support |
 
-Nothing beyond v1.3.0 is implemented today. This table describes intended future work only.
+Nothing beyond v1.4.0 is implemented today. This table describes intended future work only.
 
 ---
 
@@ -565,11 +567,11 @@ This repository demonstrates a specific, evidenced progression rather than a sta
 
 ```
 Automation Foundation → CI/CD → Containerization → True Parallel Execution
-    → Enterprise CI (planned) → Distributed Execution (planned)
+    → Advanced Test Reporting → Enterprise CI (planned) → Distributed Execution (planned)
     → Cloud Testing (planned) → Cross-Platform Automation (planned)
 ```
 
-Each completed step is backed by committed code, a real CI history, and — for the CI/Docker/parallel-execution work specifically — over fifty individual investigation, design, and validation reports under `docs/ci/` and `docs/docker/`, documenting not just what was built but what was tried, what failed, and why specific architectural decisions were made. That evidence trail is itself part of what this project is meant to demonstrate: an engineering process that investigates before implementing, and validates before declaring something done.
+Each completed step is backed by committed code, a real CI history, and — for the CI/Docker/parallel-execution and reporting work specifically — over seventy individual investigation, design, and validation reports under `docs/ci/`, `docs/docker/`, and `docs/allure/`, documenting not just what was built but what was tried, what failed, and why specific architectural decisions were made. That evidence trail is itself part of what this project is meant to demonstrate: an engineering process that investigates before implementing, and validates before declaring something done.
 
 ---
 
@@ -580,6 +582,7 @@ This is currently a single-maintainer project (Section 25). There is no formal e
 - [MA-FA-001 — Framework Architecture](docs/05-framework-architecture/MA-FA-001_Framework-Architecture_v1.1.md) for the framework's layering rules
 - [`docs/ci/`](docs/ci/) for the CI/CD pipeline's design history
 - [`docs/docker/`](docs/docker/) for the Docker and true-parallel-execution design and validation history
+- [`docs/allure/`](docs/allure/) for the Allure/ExtentReports reporting implementation and validation history
 - Section 16 above for local setup
 
 ---
@@ -606,7 +609,7 @@ Mobile Automation (Appium) · Selenium Framework Architecture · Java Test Autom
 
 <div align="center">
 
-*Enterprise Mobile Automation Framework — Release v1.3.0, Scalable Execution Release.*
-*Native + Docker execute as independent, concurrently-scheduled CI jobs; Native remains the authoritative quality gate. See [Roadmap](#21-roadmap) for planned work beyond v1.3.0.*
+*Enterprise Mobile Automation Framework — Release v1.4.0, Advanced Test Reporting & Quality Validation.*
+*Native + Docker execute as independent, concurrently-scheduled CI jobs, each producing independently validated ExtentReports and Allure results; Native remains the authoritative quality gate. See [Roadmap](#21-roadmap) for planned work beyond v1.4.0.*
 
 </div>
